@@ -34,6 +34,18 @@ services:
     networks:
       - default
 
+  agent:
+    image: grafana/agent:latest
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./config/agent.river:/etc/agent/config.river
+    environment:
+      - AGENT_MODE=flow
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/agent/config.river
+    networks:
+      - default
+
   grafana:
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
