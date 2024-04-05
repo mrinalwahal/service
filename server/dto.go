@@ -4,7 +4,7 @@ package server
 type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Error   error       `json:"error,omitempty"`
 }
 
 // CreateOptions represents the options for creating a todo.

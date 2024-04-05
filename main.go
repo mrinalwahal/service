@@ -20,9 +20,9 @@ func main() {
 	//	Setup the logger.
 	logger := slog.New(slogloki.Option{Level: slog.LevelDebug, Client: client}.NewLokiHandler())
 	logger = logger.
-		With("service", "todo").
-		With("environment", "dev").
-		With("release", "v1.0.0")
+		With("service", "todo")
+		//With("environment", "dev").
+		//With("release", "v1.0.0")
 
 	//	Initialize the server.
 	s := server.NewHTTPServer(&server.NewHTTPServerConfig{
@@ -30,9 +30,6 @@ func main() {
 		Dialector: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"),
 		Logger:    logger,
 	})
-
-	//	Register the API routes.
-	s.InitDefaultRoutes("/todo")
 
 	//	Start the server.
 	s.Serve()
