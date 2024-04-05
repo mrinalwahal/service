@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
+	"strconv"
 
 	"github.com/grafana/loki-client-go/loki"
 	"github.com/mrinalwahal/service/server"
@@ -12,17 +15,26 @@ import (
 func main() {
 
 	//	Setup the loki client to use loki as log sink.
-	config, _ := loki.NewDefaultConfig("http://localhost:3100/loki/api/v1/push")
+	config, _ := loki.NewDefaultConfig(fmt.Sprintf("%s/loki/api/v1/push", os.Getenv("LOKI_HOST")))
 	//	config.TenantID = "xyz"
 	client, _ := loki.New(config)
 	defer client.Stop()
 
 	//	Setup the logger.
-	logger := slog.New(slogloki.Option{Level: slog.LevelDebug, Client: client}.NewLokiHandler())
+	level := slog.LevelInfo
+	DEBUG, err := strconv.ParseBool(os.Getenv("DEBUG"))
+	if err != nil {
+		panic(err)
+	}
+	if DEBUG {
+		level = slog.LevelDebug
+	}
+
+	logger := slog.New(slogloki.Option{Level: level, Client: client}.NewLokiHandler())
 	logger = logger.
-		With("service", "todo")
-		//With("environment", "dev").
-		//With("release", "v1.0.0")
+		With("service", "todo").
+		With("environment", os.Getenv("ENV"))
+	//With("release", "v1.0.0")
 
 	//	Initialize the server.
 	s := server.NewHTTPServer(&server.NewHTTPServerConfig{

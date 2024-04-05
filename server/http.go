@@ -67,22 +67,23 @@ func NewHTTPServer(config *NewHTTPServerConfig) *HTTPServer {
 
 	//	RequestLogger middleware allows developer fully to customize what is logged and how it is logged and is more suitable for usage with 3rd party (structured logging) libraries.
 	server.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogStatus:   true,
-		LogURI:      true,
-		LogMethod:   true,
-		LogError:    true,
-		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
+		LogRequestID: true,
+		LogStatus:    true,
+		LogURI:       true,
+		LogMethod:    true,
+		LogError:     true,
+		HandleError:  true, // forwards error to the global error handler, so it can decide appropriate status code
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			if v.Error == nil {
 				server.logger.LogAttrs(c.Request().Context(), slog.LevelInfo, "incoming request",
-					slog.String("id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					slog.String("request_id", v.RequestID),
 					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
 				)
 			} else {
 				server.logger.LogAttrs(c.Request().Context(), slog.LevelError, "request ended with error",
-					slog.String("id", c.Response().Header().Get(echo.HeaderXRequestID)),
+					slog.String("request_id", v.RequestID),
 					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
@@ -170,7 +171,7 @@ func (s *HTTPServer) create(c echo.Context) error {
 	//	Unmarshal the incoming payload.
 	var payload CreateOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid payload.",
 			Error:   err,
 		})
@@ -182,7 +183,7 @@ func (s *HTTPServer) create(c echo.Context) error {
 	//	Get the service.
 	svc, err := s.getService()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusInternalServerError, &Response{
 			Message: "Failed to either connect to the database or prepare the service.",
 			Error:   err,
 		})
@@ -193,13 +194,13 @@ func (s *HTTPServer) create(c echo.Context) error {
 		Title: payload.Title,
 	})
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Failed to create the todo.",
 			Error:   err,
 		})
 	}
 
-	return c.JSON(http.StatusOK, &Response{
+	return c.JSON(http.StatusCreated, &Response{
 		Message: "Todo created successfully.",
 		Data:    todo,
 	})
@@ -212,7 +213,7 @@ func (s *HTTPServer) get(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 			Error:   err,
 		})
@@ -224,7 +225,7 @@ func (s *HTTPServer) get(c echo.Context) error {
 	//	Get the service.
 	svc, err := s.getService()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusInternalServerError, &Response{
 			Message: "Failed to either connect to the database or prepare the service.",
 			Error:   err,
 		})
@@ -233,8 +234,8 @@ func (s *HTTPServer) get(c echo.Context) error {
 	//	Call the service function to execute the business logic.
 	todo, err := svc.Get(ctx, uuid)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
-			Message: "Failed to get the todo.",
+		return echo.NewHTTPError(http.StatusNotFound, &Response{
+			Message: "Todo not found.",
 			Error:   err,
 		})
 	}
@@ -251,7 +252,7 @@ func (s *HTTPServer) list(c echo.Context) error {
 	//	Unmarshal the incoming payload
 	var payload ListOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid payload.",
 			Error:   err,
 		})
@@ -263,7 +264,7 @@ func (s *HTTPServer) list(c echo.Context) error {
 	//	Get the service.
 	svc, err := s.getService()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusInternalServerError, &Response{
 			Message: "Failed to either connect to the database or prepare the service.",
 			Error:   err,
 		})
@@ -278,7 +279,7 @@ func (s *HTTPServer) list(c echo.Context) error {
 		OrderDirection: payload.OrderDirection,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Failed to list the todos.",
 			Error:   err,
 		})
@@ -297,7 +298,7 @@ func (s *HTTPServer) update(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 			Error:   err,
 		})
@@ -306,7 +307,7 @@ func (s *HTTPServer) update(c echo.Context) error {
 	//	Unmarshal the incoming payload.
 	var payload UpdateOptions
 	if err := c.Bind(&payload); err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid payload.",
 			Error:   err,
 		})
@@ -318,7 +319,7 @@ func (s *HTTPServer) update(c echo.Context) error {
 	//	Get the service.
 	svc, err := s.getService()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusInternalServerError, &Response{
 			Message: "Failed to either connect to the database or prepare the service.",
 			Error:   err,
 		})
@@ -329,7 +330,7 @@ func (s *HTTPServer) update(c echo.Context) error {
 		Title: payload.Title,
 	})
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Failed to update the todo.",
 			Error:   err,
 		})
@@ -348,7 +349,7 @@ func (s *HTTPServer) delete(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 			Error:   err,
 		})
@@ -360,7 +361,7 @@ func (s *HTTPServer) delete(c echo.Context) error {
 	//	Get the service.
 	svc, err := s.getService()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, &Response{
+		return echo.NewHTTPError(http.StatusInternalServerError, &Response{
 			Message: "Failed to either connect to the database or prepare the service.",
 			Error:   err,
 		})
@@ -369,7 +370,7 @@ func (s *HTTPServer) delete(c echo.Context) error {
 	//	Call the service function to execute the business logic.
 	err = svc.Delete(ctx, uuid)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, &Response{
+		return echo.NewHTTPError(http.StatusBadRequest, &Response{
 			Message: "Failed to delete the todo.",
 			Error:   err,
 		})
