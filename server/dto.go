@@ -1,10 +1,27 @@
 package server
 
+import (
+	"encoding/json"
+	"log/slog"
+)
+
 // Default API response structure.
 type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message,omitempty"`
 	Error   error       `json:"error,omitempty"`
+}
+
+// Convert the response to logger compatible.
+func (r *Response) LogValue() slog.Value {
+
+	//	Marshal the response to string.
+	data, err := json.Marshal(r)
+	if err != nil {
+		return slog.StringValue("failed to marshal response")
+	}
+
+	return slog.StringValue(string(data))
 }
 
 // CreateOptions represents the options for creating a todo.

@@ -2,17 +2,24 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"strconv"
 
 	"github.com/grafana/loki-client-go/loki"
+	"github.com/joho/godotenv"
 	"github.com/mrinalwahal/service/server"
 	slogloki "github.com/samber/slog-loki/v3"
 	"gorm.io/driver/postgres"
 )
 
 func main() {
+
+	err := godotenv.Load(".env.example")
+	if err != nil {
+		log.Println("Error loading .env.development file")
+	}
 
 	//	Setup the loki client to use loki as log sink.
 	config, _ := loki.NewDefaultConfig(fmt.Sprintf("%s/loki/api/v1/push", os.Getenv("LOKI_HOST")))

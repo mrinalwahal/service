@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -60,12 +61,38 @@ func NewHTTPServer(config *NewHTTPServerConfig) *HTTPServer {
 	//
 
 	//	Recover middleware recovers from panics anywhere in the chain, prints stack trace and handovers the control to the centralized HTTPErrorHandler.
+	//
+	//	Link: https://echo.labstack.com/docs/middleware/recover
 	server.echo.Use(middleware.Recover())
 
 	//	Request ID middleware generates a unique ID for every request.
+	//
+	//	Link: https://echo.labstack.com/docs/middleware/request-id
 	server.echo.Use(middleware.RequestID())
 
+	//	RateLimiter provides a Rate Limiter middleware for limiting the amount of requests to the server from a particular IP or ID within a time period.
+	//
+	//	Link: https://echo.labstack.com/docs/middleware/rate-limiter
+	server.echo.Use(middleware.RateLimiterWithConfig(middleware.RateLimiterConfig{
+		Skipper: middleware.DefaultSkipper,
+		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+			middleware.RateLimiterMemoryStoreConfig{Rate: 10, Burst: 30, ExpiresIn: 3 * time.Minute},
+		),
+		IdentifierExtractor: func(ctx echo.Context) (string, error) {
+			id := ctx.RealIP()
+			return id, nil
+		},
+		ErrorHandler: func(context echo.Context, err error) error {
+			return context.JSON(http.StatusForbidden, nil)
+		},
+		DenyHandler: func(context echo.Context, identifier string, err error) error {
+			return context.JSON(http.StatusTooManyRequests, nil)
+		},
+	}))
+
 	//	RequestLogger middleware allows developer fully to customize what is logged and how it is logged and is more suitable for usage with 3rd party (structured logging) libraries.
+	//
+	//	Link: https://echo.labstack.com/docs/middleware/logger#new-requestlogger-middleware
 	server.echo.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogRequestID: true,
 		LogStatus:    true,
