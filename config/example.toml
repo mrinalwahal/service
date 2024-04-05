@@ -1,0 +1,19 @@
+[environment]
+debug = false
+env = dev
+
+[database.postgres]
+host = postgres
+username = postgres
+password = postgres
+port = 5432
+
+[cache.redis]
+host = redis
+password = redis
+port = 6379
+
+[logs.loki]
+address = http://localhost:3100
+
+[metics.prometheus]
