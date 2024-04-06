@@ -3,21 +3,46 @@ package router
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
+
+	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/service"
+	"gorm.io/gorm"
+
+	slogGorm "github.com/orandin/slog-gorm"
 )
 
 type HTTPRouter struct {
 	*http.ServeMux
 
-	// Logger is the `log/slog` instance that will be used to log messages.
+	// Gorm database dialector to use.
+	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	//
+	// This field is mandatory.
+	dialector gorm.Dialector
+
+	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
 	//
 	// This field is optional.
-	Logger *slog.Logger
+	log *slog.Logger
 }
 
+// HandleFunc registers the handler function for the given pattern.
+// func (r *HTTPRouter) HandleFunc(pattern string, handlerFunc func(w http.ResponseWriter, req *http.Request)) {}
+
+// ServeHTTP handles the incoming HTTP request.
+// func (r *HTTPRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {}
+
 type HTTPRouterConfig struct {
+
+	// Gorm database dialector to use.
+	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	//
+	// This field is mandatory.
+	Dialector gorm.Dialector
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -30,39 +55,51 @@ type HTTPRouterConfig struct {
 func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 
 	router := HTTPRouter{
-		ServeMux: http.NewServeMux(),
-		Logger:   config.Logger,
+		ServeMux:  http.NewServeMux(),
+		dialector: config.Dialector,
+		log:       config.Logger,
 	}
 
 	// Set the default logger if not provided.
-	if router.Logger == nil {
-		router.Logger = slog.Default()
+	if router.log == nil {
+		router.log = slog.Default()
 	}
 
+	router.log = router.log.With("layer", "router")
+
 	// Register the default routes.
-	router.registerDefaultRoutes()
+	router.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+	router.HandleFunc("POST /", handle(router.Create))
 
 	return &router
 }
 
-// registerDefaultRoutes registers the default routes.
-func (r *HTTPRouter) registerDefaultRoutes() {
-	r.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+// OpenDB opens a database connection and returns the db/respository service.
+func (r *HTTPRouter) OpenDB() (db.DB, error) {
+
+	//	Setup the gorm logger.
+	handler := r.log.With("layer", "database").Handler()
+	gormLogger := slogGorm.New(
+		slogGorm.WithHandler(handler), // since v1.3.0
+		slogGorm.WithTraceAll(),       // trace all messages
+	)
+
+	//	Prepare a database connection.
+	database, err := gorm.Open(r.dialector, &gorm.Config{
+		Logger: gormLogger,
 	})
-	r.HandleFunc("POST /", handle(r.Create))
+	if err != nil {
+		return nil, err
+	}
+
+	//	Setup the database service.
+	return db.NewDB(&db.Config{
+		DB: database,
+	}), nil
 }
-
-// HandleFunc registers the handler function for the given pattern.
-// func (r *HTTPRouter) HandleFunc(pattern string, handlerFunc func(w http.ResponseWriter, req *http.Request)) {
-
-// }
-
-// ServeHTTP handles the incoming HTTP request.
-// func (r *HTTPRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-
-// }
 
 //
 // Functions which will handle incoming requests.
@@ -70,7 +107,6 @@ func (r *HTTPRouter) registerDefaultRoutes() {
 
 // Create handler create a new record.
 func (r *HTTPRouter) Create(req *http.Request) error {
-	return fmt.Errorf("not implemented")
 
 	// Decode the request body.
 	body, err := decode[CreateOptions](req)
@@ -82,14 +118,38 @@ func (r *HTTPRouter) Create(req *http.Request) error {
 		}
 	}
 
-	// Log the request body.
-	r.Logger.LogAttrs(req.Context(), slog.LevelInfo, "create request", slog.String("title", body.Title))
+	// Open the database connection.
+	db, err := r.OpenDB()
+	if err != nil {
+		return &Response{
+			Status:  http.StatusInternalServerError,
+			Message: "Failed to open the database connection.",
+			Err:     err,
+		}
+	}
 
-	// Prepare the context from the request context.
+	// Get the appropriate business service.
+	svc := service.NewService(&service.Config{
+		DB:     db,
+		Logger: r.log,
+	})
+
+	// Call the service method that performs the required operation.
+	record, err := svc.Create(req.Context(), &service.CreateOptions{
+		Title: body.Title,
+	})
+	if err != nil {
+		return &Response{
+			Status:  http.StatusInternalServerError,
+			Message: "Failed to create the record.",
+			Err:     err,
+		}
+	}
+
 	return &Response{
 		Status:  http.StatusCreated,
-		Message: "Record created successfully",
-		Data:    body,
+		Message: "The record was created successfully.",
+		Data:    record,
 	}
 }
 
@@ -105,13 +165,17 @@ func handle(handlerFunc func(*http.Request) error) func(w http.ResponseWriter, r
 			// If it is, then write the response as JSON.
 			// If it is not, then wrap the error in a new `Response` structure with defaults.
 			if response, ok := err.(*Response); ok {
-				write(w, response.Status, response)
+				if err := write(w, response.Status, response); err != nil {
+					log.Println("failed to write response:", err)
+				}
 				return
 			}
-			write(w, http.StatusInternalServerError, &Response{
+			if err := write(w, http.StatusInternalServerError, &Response{
 				Message: "Your broke something on our server :(",
 				Err:     err,
-			})
+			}); err != nil {
+				log.Println("failed to write response:", err)
+			}
 			return
 		}
 	}
