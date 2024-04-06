@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -86,6 +87,9 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h.body = &body
 
+	// Load the context.
+	ctx := r.Context()
+
 	// Open the database connection.
 	db, err := db.NewDB(&db.Config{
 		Dialector: h.dialector,
@@ -100,33 +104,31 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.db = db
 
 	// Validate the request.
-	if err := h.validate(r); err != nil {
+	if err := h.validate(ctx); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(r); err != nil {
+	if err := h.function(ctx); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// Validate function ascertains that the requester is authorized to perform this request.
+// validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *CreateHandler) validate(r *http.Request) error {
+func (h *CreateHandler) validate(ctx context.Context) error {
 	return nil
 }
 
-func (h *CreateHandler) function(r *http.Request) error {
+// function applies the fundamental business logic to complete required operation.
+func (h *CreateHandler) function(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{
 		DB:     h.db,
 		Logger: h.log,
 	})
-
-	// Prepare the context.
-	ctx := r.Context()
 
 	// Call the service method that performs the required operation.
 	record, err := svc.Create(ctx, &service.CreateOptions{
