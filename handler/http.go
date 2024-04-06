@@ -9,12 +9,6 @@ import (
 
 type HTTPHandlerConfig struct {
 
-	//	Prefix is the prefix that will be added to all the routes.
-	//	Example: "/api" or "/v1" or "/api/v1".
-	//
-	//	This field is optional.
-	// Prefix string
-
 	//	Logger is the `log/slog` instance that will be used to log messages.
 	//	Default: `slog.DefaultLogger`
 	//
@@ -23,14 +17,8 @@ type HTTPHandlerConfig struct {
 }
 
 type HTTPHandler struct {
-	// prefix string
 	log *slog.Logger
 }
-
-// // ServeHTTP serves the handler on supplied request and response writer.
-// func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-// }
 
 // NewHTTPHandler creates a new instance of `HTTPHandler`.
 func NewHTTPHandler(config *HTTPHandlerConfig) *HTTPHandler {
@@ -45,27 +33,7 @@ func NewHTTPHandler(config *HTTPHandlerConfig) *HTTPHandler {
 }
 
 // Handler is a function that handles incoming requests.
-type Handler func(*http.Request) error
-
-func (h *HTTPHandler) HandlerFunc(handler func(*http.Request) error) func(w http.ResponseWriter, req *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		if err := handler(req); err != nil {
-
-			// Run type assertion on the response to check if it is of type `Response`.
-			// If it is, then write the response as JSON.
-			// If it is not, then wrap the error in a new `Response` structure with defaults.
-			if response, ok := err.(*Response); ok {
-				WriteJSON(w, response.Status, response)
-				return
-			}
-			WriteJSON(w, http.StatusInternalServerError, &Response{
-				Message: "Your broke something on our server :(",
-				Err:     err,
-			})
-			return
-		}
-	}
-}
+// type Handler func(*http.Request) error
 
 //
 // Functions which will handle incoming requests.
@@ -87,8 +55,9 @@ func (h *HTTPHandler) Get(req *http.Request) error {
 	_, err := uuid.Parse(req.PathValue("id"))
 	if err != nil {
 		return &Response{
-			Status: http.StatusBadRequest,
-			Err:    err,
+			Status:  http.StatusBadRequest,
+			Message: "Invalid record ID.",
+			Err:     err,
 		}
 	}
 

@@ -41,7 +41,7 @@ func main() {
 	//	Initialize the server.
 	router := http.NewServeMux()
 
-	handler := handler.NewHTTPHandler(&handler.HTTPHandlerConfig{
+	h := handler.NewHTTPHandler(&handler.HTTPHandlerConfig{
 		// Prefix: "/v1",
 		Logger: logger,
 	})
@@ -53,8 +53,8 @@ func main() {
 	})
 
 	// CRUD routes.
-	router.HandleFunc("POST /v1", handler.HandlerFunc(handler.Create))
-	router.HandleFunc("GET /v1/{id}", handler.HandlerFunc(handler.Get))
+	router.HandleFunc("POST /v1", handle(h.Create))
+	router.HandleFunc("GET /v1/{id}", handle(h.Get))
 
 	// Prepare the middleware chain.
 	// The order of the middlewares is important.

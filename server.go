@@ -1,24 +1,30 @@
-package handler
+package main
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/mrinalwahal/service/handler"
 )
 
-// Default HTTP response structure.
-// This structure implements the `error` interface.
-type Response struct {
-	Data    interface{} `json:"data,omitempty"`
-	Message string      `json:"message,omitempty"`
-	Err     error       `json:"error,omitempty"`
-	Status  int         `json:"-"`
-}
+func handle(handlerFunc func(*http.Request) error) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if err := handlerFunc(req); err != nil {
 
-// Error returns the error message.
-//
-// This method is required to implement the `error` interface.
-func (r *Response) Error() string {
-	return r.Message
+			// Run type assertion on the response to check if it is of type `Response`.
+			// If it is, then write the response as JSON.
+			// If it is not, then wrap the error in a new `Response` structure with defaults.
+			if response, ok := err.(*handler.Response); ok {
+				WriteJSON(w, response.Status, response)
+				return
+			}
+			WriteJSON(w, http.StatusInternalServerError, &handler.Response{
+				Message: "Your broke something on our server :(",
+				Err:     err,
+			})
+			return
+		}
+	}
 }
 
 // WriteJSON writes the data to the supplied http response writer.

@@ -1,5 +1,21 @@
 package handler
 
+// Default HTTP Response structure.
+// This structure implements the `error` interface.
+type Response struct {
+	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Err     error       `json:"error,omitempty"`
+	Status  int         `json:"-"`
+}
+
+// Error returns the error message.
+//
+// This method is required to implement the `error` interface.
+func (r *Response) Error() string {
+	return r.Message
+}
+
 // CreateOptions represents the options for creating a todo.
 type CreateOptions struct {
 

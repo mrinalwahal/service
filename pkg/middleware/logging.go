@@ -6,33 +6,6 @@ import (
 	"time"
 )
 
-// Record is the primary structure in which a log record is maintained.
-type Record struct {
-	RequestID string        `json:"request_id,omitempty"`
-	Status    int           `json:"status,omitempty"`
-	Duration  time.Duration `json:"duration,omitempty"`
-	Hostname  string        `json:"hostname,omitempty"`
-	Method    string        `json:"method,omitempty"`
-	Path      string        `json:"path,omitempty"`
-}
-
-func (r *Record) attributes() []slog.Attr {
-
-	// If the status is 0, then set it to 200.
-	if r.Status == 0 {
-		r.Status = http.StatusOK
-	}
-
-	return []slog.Attr{
-		{Key: "request_id", Value: slog.StringValue(r.RequestID)},
-		{Key: "status", Value: slog.IntValue(r.Status)},
-		{Key: "duration", Value: slog.DurationValue(r.Duration)},
-		{Key: "hostname", Value: slog.StringValue(r.Hostname)},
-		{Key: "method", Value: slog.StringValue(r.Method)},
-		{Key: "path", Value: slog.StringValue(r.Path)},
-	}
-}
-
 func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,16 +14,16 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 			//writer := writer.Writer{ResponseWriter: w}
 			next.ServeHTTP(w, r)
 
-			record := &Record{
-				RequestID: r.Context().Value(XRequestID).(string),
-				//Status:    writer.Status(),
-				Duration: time.Since(start),
-				Hostname: r.Host,
-				Method:   r.Method,
-				Path:     r.URL.Path,
+			attributes := []slog.Attr{
+				{Key: "request_id", Value: slog.StringValue(r.Context().Value(XRequestID).(string))},
+				// {Key: "status", Value: slog.IntValue(r.Status)},
+				{Key: "duration", Value: slog.DurationValue(time.Since(start))},
+				{Key: "hostname", Value: slog.StringValue(r.Host)},
+				{Key: "method", Value: slog.StringValue(r.Method)},
+				{Key: "path", Value: slog.StringValue(r.URL.Path)},
 			}
 
-			log.LogAttrs(r.Context(), slog.LevelInfo, "request processed", record.attributes()...)
+			log.LogAttrs(r.Context(), slog.LevelInfo, "http request", attributes...)
 		})
 	}
 }
