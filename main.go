@@ -58,9 +58,12 @@ func main() {
 
 	// Prepare the middleware chain.
 	// The order of the middlewares is important.
-	// Recommended order: CORS -> Logging -> Recover -> Auth -> RateLimit -> Cache -> Compression
+	// Recommended order: Request ID -> RateLimit -> CORS -> Logging -> Recover -> Auth -> Cache -> Compression
 	chain := middleware.ApplyMiddlewares(
-		middleware.CORS(logger),
+		middleware.RequestID,
+		// TODO: middleware.RateLimit,
+		middleware.CORS,
+		middleware.Recover(logger),
 		middleware.Logging(logger),
 	)
 	// s := server.NewHTTPServer(&server.NewHTTPServerConfig{
