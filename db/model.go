@@ -32,12 +32,12 @@ func (b *Base) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-type Todo struct {
+type Record struct {
 	Base
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string `json:"title" gorm:"not null"`
 
-	//	ID of the user who created the todo.
+	//	ID of the user who created the record.
 	//UserID uuid.UUID `json:"user_id" gorm:"not null"`
 }

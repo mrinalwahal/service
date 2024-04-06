@@ -1,6 +1,6 @@
 package router
 
-// ListOptions represents the options for listing todos.
+// ListOptions represents the options for listing records.
 type ListOptions struct {
 
 	//	Number of records to skip.
@@ -15,13 +15,13 @@ type ListOptions struct {
 	//	Order by direction.
 	OrderDirection string `query:"orderDirection" validate:"oneof=asc desc"`
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string `query:"name"`
 }
 
-// UpdateOptions represents the options for updating a todo.
+// UpdateOptions represents the options for updating a record.
 type UpdateOptions struct {
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string `json:"title"`
 }

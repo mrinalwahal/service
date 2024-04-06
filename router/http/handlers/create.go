@@ -10,10 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateOptions represents the options for creating a todo.
+// CreateOptions represents the options for creating a record.
 type CreateOptions struct {
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string `json:"title" validate:"required"`
 }
 

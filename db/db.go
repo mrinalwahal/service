@@ -10,10 +10,10 @@ import (
 )
 
 type DB interface {
-	Create(context.Context, *CreateOptions) (*Todo, error)
-	Get(context.Context, uuid.UUID) (*Todo, error)
-	List(context.Context, *ListOptions) ([]*Todo, error)
-	Update(context.Context, uuid.UUID, *UpdateOptions) (*Todo, error)
+	Create(context.Context, *CreateOptions) (*Record, error)
+	Get(context.Context, uuid.UUID) (*Record, error)
+	List(context.Context, *ListOptions) ([]*Record, error)
+	Update(context.Context, uuid.UUID, *UpdateOptions) (*Record, error)
 	Delete(context.Context, uuid.UUID) error
 }
 
@@ -66,10 +66,10 @@ type Database struct {
 	conn *gorm.DB
 }
 
-func (db *Database) Create(ctx context.Context, options *CreateOptions) (*Todo, error) {
+func (db *Database) Create(ctx context.Context, options *CreateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Todo
+	var payload Record
 	payload.Title = options.Title
 
 	result := txn.Create(&payload)
@@ -79,10 +79,10 @@ func (db *Database) Create(ctx context.Context, options *CreateOptions) (*Todo, 
 	return &payload, nil
 }
 
-func (db *Database) Get(ctx context.Context, ID uuid.UUID) (*Todo, error) {
+func (db *Database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Todo
+	var payload Record
 	payload.ID = ID
 	result := txn.First(&payload)
 	if result.Error != nil {
@@ -91,10 +91,10 @@ func (db *Database) Get(ctx context.Context, ID uuid.UUID) (*Todo, error) {
 	return &payload, nil
 }
 
-func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Todo, error) {
+func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload []*Todo
+	var payload []*Record
 
 	query := txn
 	if options.Limit > 0 {
@@ -108,7 +108,7 @@ func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Todo, er
 	}
 
 	//	Add conditions to the query.
-	where := Todo{
+	where := Record{
 		Title: options.Title,
 	}
 
@@ -118,10 +118,10 @@ func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Todo, er
 	return payload, nil
 }
 
-func (db *Database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Todo, error) {
+func (db *Database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Todo
+	var payload Record
 	payload.ID = id
 	if result := txn.Model(&payload).Updates(options); result.Error != nil {
 		return nil, result.Error
@@ -132,14 +132,14 @@ func (db *Database) Update(ctx context.Context, id uuid.UUID, options *UpdateOpt
 func (db *Database) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Todo
+	var payload Record
 	payload.ID = ID
 	result := txn.Delete(&payload)
 	return result.Error
 }
 
-func create(txn *gorm.DB, options *CreateOptions) (*Todo, error) {
-	var payload Todo
+func create(txn *gorm.DB, options *CreateOptions) (*Record, error) {
+	var payload Record
 	payload.Title = options.Title
 
 	result := txn.Create(&payload)
@@ -149,8 +149,8 @@ func create(txn *gorm.DB, options *CreateOptions) (*Todo, error) {
 	return &payload, nil
 }
 
-func get(txn *gorm.DB, ID uuid.UUID) (*Todo, error) {
-	var payload Todo
+func get(txn *gorm.DB, ID uuid.UUID) (*Record, error) {
+	var payload Record
 	payload.ID = ID
 	result := txn.First(&payload)
 	if result.Error != nil {
@@ -159,8 +159,8 @@ func get(txn *gorm.DB, ID uuid.UUID) (*Todo, error) {
 	return &payload, nil
 }
 
-func list(txn *gorm.DB, options *ListOptions) ([]*Todo, error) {
-	var payload []*Todo
+func list(txn *gorm.DB, options *ListOptions) ([]*Record, error) {
+	var payload []*Record
 
 	query := txn
 	if options.Limit > 0 {
@@ -174,7 +174,7 @@ func list(txn *gorm.DB, options *ListOptions) ([]*Todo, error) {
 	}
 
 	//	Add conditions to the query.
-	where := Todo{
+	where := Record{
 		Title: options.Title,
 	}
 
@@ -185,14 +185,14 @@ func list(txn *gorm.DB, options *ListOptions) ([]*Todo, error) {
 }
 
 func update(txn *gorm.DB, id uuid.UUID, options *UpdateOptions) error {
-	var payload Todo
+	var payload Record
 	payload.ID = id
 	result := txn.Model(&payload).Updates(options)
 	return result.Error
 }
 
 func delete(txn *gorm.DB, ID uuid.UUID) error {
-	var payload Todo
+	var payload Record
 	payload.ID = ID
 	result := txn.Delete(&payload)
 	return result.Error

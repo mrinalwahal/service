@@ -35,7 +35,7 @@ func main() {
 		Level: level,
 	}))
 	logger = logger.
-		With("service", "todo").
+		With("service", "record").
 		With("environment", os.Getenv("ENV"))
 
 	//	Initialize the router.
@@ -57,7 +57,7 @@ func main() {
 
 	// Prepare the base router.
 	baseRouter := http.NewServeMux()
-	baseRouter.Handle("/todo/", http.StripPrefix("/todo", router))
+	baseRouter.Handle("/record/", http.StripPrefix("/record", router))
 
 	//	Configure and start the server.
 	server := http.Server{

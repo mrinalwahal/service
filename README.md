@@ -8,7 +8,7 @@
     ```
 1. Generate mocks.
     ```
-    mockgen -destination=mock.go -source=service.go -package=todo
+    mockgen -destination=mock.go -source=service.go -package=record
     ```
 
 This will generate the file `mock.go` which will contains your mock service. You can import it in your tests with:

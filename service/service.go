@@ -9,10 +9,10 @@ import (
 )
 
 type Service interface {
-	Create(context.Context, *CreateOptions) (*db.Todo, error)
-	List(context.Context, *ListOptions) ([]*db.Todo, error)
-	Get(context.Context, uuid.UUID) (*db.Todo, error)
-	Update(context.Context, uuid.UUID, *UpdateOptions) (*db.Todo, error)
+	Create(context.Context, *CreateOptions) (*db.Record, error)
+	List(context.Context, *ListOptions) ([]*db.Record, error)
+	Get(context.Context, uuid.UUID) (*db.Record, error)
+	Update(context.Context, uuid.UUID, *UpdateOptions) (*db.Record, error)
 	Delete(context.Context, uuid.UUID) error
 }
 
@@ -50,8 +50,8 @@ type service struct {
 	logger *slog.Logger
 }
 
-func (s *service) Create(ctx context.Context, options *CreateOptions) (*db.Todo, error) {
-	s.logger.LogAttrs(ctx, slog.LevelDebug, "creating a new todo",
+func (s *service) Create(ctx context.Context, options *CreateOptions) (*db.Record, error) {
+	s.logger.LogAttrs(ctx, slog.LevelDebug, "creating a new record",
 		slog.String("function", "create"),
 	)
 	return s.db.Create(ctx, &db.CreateOptions{
@@ -59,8 +59,8 @@ func (s *service) Create(ctx context.Context, options *CreateOptions) (*db.Todo,
 	})
 }
 
-func (s *service) List(ctx context.Context, options *ListOptions) ([]*db.Todo, error) {
-	s.logger.LogAttrs(ctx, slog.LevelDebug, "listing all todos",
+func (s *service) List(ctx context.Context, options *ListOptions) ([]*db.Record, error) {
+	s.logger.LogAttrs(ctx, slog.LevelDebug, "listing all records",
 		slog.String("function", "list"),
 	)
 	return s.db.List(ctx, &db.ListOptions{
@@ -72,15 +72,15 @@ func (s *service) List(ctx context.Context, options *ListOptions) ([]*db.Todo, e
 	})
 }
 
-func (s *service) Get(ctx context.Context, ID uuid.UUID) (*db.Todo, error) {
-	s.logger.LogAttrs(ctx, slog.LevelDebug, "retrieving a todo",
+func (s *service) Get(ctx context.Context, ID uuid.UUID) (*db.Record, error) {
+	s.logger.LogAttrs(ctx, slog.LevelDebug, "retrieving a record",
 		slog.String("function", "get"),
 	)
 	return s.db.Get(ctx, ID)
 }
 
-func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptions) (*db.Todo, error) {
-	s.logger.LogAttrs(ctx, slog.LevelDebug, "updating a todo",
+func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptions) (*db.Record, error) {
+	s.logger.LogAttrs(ctx, slog.LevelDebug, "updating a record",
 		slog.String("function", "update"),
 	)
 	return s.db.Update(ctx, ID, &db.UpdateOptions{
@@ -89,7 +89,7 @@ func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptio
 }
 
 func (s *service) Delete(ctx context.Context, ID uuid.UUID) error {
-	s.logger.LogAttrs(ctx, slog.LevelDebug, "deleting a todo",
+	s.logger.LogAttrs(ctx, slog.LevelDebug, "deleting a record",
 		slog.String("function", "delete"),
 	)
 	return s.db.Delete(ctx, ID)
