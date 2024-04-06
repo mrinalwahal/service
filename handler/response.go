@@ -6,7 +6,8 @@ import (
 	"net/http"
 )
 
-// Default API response structure.
+// Default HTTP response structure.
+// This structure implements the `error` interface.
 type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message,omitempty"`
@@ -34,7 +35,7 @@ func (r *Response) LogValue() slog.Value {
 }
 
 // WriteJSON writes the data to the supplied http response writer.
-func WriteJSON(w http.ResponseWriter, status int, response *Response) error {
+func WriteJSON(w http.ResponseWriter, status int, response any) error {
 
 	// Set the content type to JSON.
 	// w.Header().Set("Content-Type", "application/json")

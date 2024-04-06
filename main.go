@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 
-	"github.com/grafana/loki-client-go/loki"
 	"github.com/joho/godotenv"
-	"github.com/mrinalwahal/service/server"
-	slogloki "github.com/samber/slog-loki/v3"
-	"gorm.io/driver/postgres"
+	"github.com/mrinalwahal/service/handler"
+	"github.com/mrinalwahal/service/pkg/middleware"
 )
 
 func main() {
@@ -20,12 +19,6 @@ func main() {
 	if err != nil {
 		log.Println("Error loading .env.development file")
 	}
-
-	//	Setup the loki client to use loki as log sink.
-	config, _ := loki.NewDefaultConfig(fmt.Sprintf("%s/loki/api/v1/push", os.Getenv("LOKI_HOST")))
-	//	config.TenantID = "xyz"
-	client, _ := loki.New(config)
-	defer client.Stop()
 
 	//	Setup the logger.
 	level := slog.LevelInfo
@@ -36,20 +29,51 @@ func main() {
 	if DEBUG {
 		level = slog.LevelDebug
 	}
-
-	logger := slog.New(slogloki.Option{Level: level, Client: client}.NewLokiHandler())
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		// AddSource: true,
+		Level: level,
+	}))
 	logger = logger.
 		With("service", "todo").
 		With("environment", os.Getenv("ENV"))
 	//With("release", "v1.0.0")
 
 	//	Initialize the server.
-	s := server.NewHTTPServer(&server.NewHTTPServerConfig{
-		Port:      "8080",
-		Dialector: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"),
-		Logger:    logger,
+	router := http.NewServeMux()
+
+	handler := handler.NewHTTPHandler(&handler.HTTPHandlerConfig{
+		// Prefix: "/v1",
+		Logger: logger,
 	})
 
+	// Health check endpoint.
+	// Returns OK if the server is running.
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// CRUD routes.
+	router.HandleFunc("POST /v1/", handler.HandlerFunc(handler.Create))
+	router.HandleFunc("GET /v1/{id}", handler.HandlerFunc(handler.Get))
+
+	// Prepare the middleware chain.
+	// The order of the middlewares is important.
+	// Recommended order: CORS -> Logging -> Recover -> Auth -> RateLimit -> Cache -> Compression
+	chain := middleware.ApplyMiddlewares(
+		middleware.CORS(logger),
+		middleware.Logging(logger),
+	)
+	// s := server.NewHTTPServer(&server.NewHTTPServerConfig{
+	// 	Port:      "8080",
+	// 	Dialector: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"),
+	// 	Logger:    logger,
+	// })
+
 	//	Start the server.
-	s.Serve()
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: chain(router),
+	}
+	fmt.Println("Server is running on port 8080")
+	server.ListenAndServe()
 }

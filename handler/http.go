@@ -13,7 +13,7 @@ type HTTPHandlerConfig struct {
 	//	Example: "/api" or "/v1" or "/api/v1".
 	//
 	//	This field is optional.
-	Prefix string
+	// Prefix string
 
 	//	Logger is the `log/slog` instance that will be used to log messages.
 	//	Default: `slog.DefaultLogger`
@@ -23,47 +23,33 @@ type HTTPHandlerConfig struct {
 }
 
 type HTTPHandler struct {
-	*http.ServeMux
-	prefix string
-	log    *slog.Logger
+	// prefix string
+	log *slog.Logger
 }
+
+// // ServeHTTP serves the handler on supplied request and response writer.
+// func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+// }
 
 // NewHTTPHandler creates a new instance of `HTTPHandler`.
 func NewHTTPHandler(config *HTTPHandlerConfig) *HTTPHandler {
 	if config.Logger == nil {
 		config.Logger = slog.Default()
 	}
-	return &HTTPHandler{
-		ServeMux: http.NewServeMux(),
-		log:      config.Logger,
+	handler := HTTPHandler{
+		log: config.Logger,
 	}
+
+	return &handler
 }
 
-// Register default routes.
-func (r *HTTPHandler) Register() {
+// Handler is a function that handles incoming requests.
+type Handler func(*http.Request) error
 
-	// Health check endpoint.
-	// Returns OK if the server is running.
-	r.HandleFunc("GET /healthz", func(r *http.Request) error {
-		return &Response{
-			Status: http.StatusOK,
-		}
-	})
-
-	// CRUD routes.
-	r.HandleFunc("POST /", r.Create)
-	r.HandleFunc("GET /{id}", r.Get)
-	// r.HandleFunc("GET /", r.List)
-	// r.HandleFunc("PUT /{id}", r.Update)
-	// r.HandleFunc("DELETE /{id}", r.Delete)
-}
-
-// HandleFunc registers a new route with the router.
-func (r *HTTPHandler) HandleFunc(pattern string, handler func(*http.Request) error) {
-	r.ServeMux.HandleFunc(r.prefix+pattern, func(w http.ResponseWriter, req *http.Request) {
-		r.log.Info("Request received", slog.String("method", req.Method), slog.String("path", req.URL.Path))
+func (h *HTTPHandler) HandlerFunc(handler func(*http.Request) error) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		if err := handler(req); err != nil {
-			r.log.Error("Request failed", slog.String("method", req.Method), slog.String("path", req.URL.Path), err)
 
 			// Run type assertion on the response to check if it is of type `Response`.
 			// If it is, then write the response as JSON.
@@ -78,13 +64,15 @@ func (r *HTTPHandler) HandleFunc(pattern string, handler func(*http.Request) err
 			})
 			return
 		}
-	})
+	}
 }
 
+//
 // Functions which will handle incoming requests.
 //
+
 // Create handler create a new record.
-func (r *HTTPHandler) Create(req *http.Request) error {
+func (h *HTTPHandler) Create(req *http.Request) error {
 
 	// Prepare the context from the request context.
 	return &Response{
@@ -93,7 +81,7 @@ func (r *HTTPHandler) Create(req *http.Request) error {
 }
 
 // Get handler retrieves a specific record by it's UUID.
-func (r *HTTPHandler) Get(req *http.Request) error {
+func (h *HTTPHandler) Get(req *http.Request) error {
 
 	// Get the record's UUID from the request path.
 	_, err := uuid.Parse(req.PathValue("id"))
@@ -110,16 +98,16 @@ func (r *HTTPHandler) Get(req *http.Request) error {
 }
 
 // // List handler retrieves all records.
-// func (r *HTTPHandler) List(req *http.Request) error {
+// func (h *HTTPHandler) List(req *http.Request) error {
 // 	return WriteString(w, http.StatusNotImplemented, "Not implemented")
 // }
 
 // // Update handler updates a specific record by it's UUID.
-// func (r *HTTPHandler) Update(req *http.Request) error {
+// func (h *HTTPHandler) Update(req *http.Request) error {
 // 	return WriteString(w, http.StatusNotImplemented, "Not implemented")
 // }
 
 // // Delete handler deletes a specific record by it's UUID.
-// func (r *HTTPHandler) Delete(req *http.Request) error {
+// func (h *HTTPHandler) Delete(req *http.Request) error {
 // 	return WriteString(w, http.StatusNotImplemented, "Not implemented")
 // }
