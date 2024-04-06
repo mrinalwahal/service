@@ -134,7 +134,7 @@ func (h *GetHandler) function(ctx context.Context) error {
 
 	return &response{
 		Status:  http.StatusOK,
-		Message: "The record were retrieved successfully.",
+		Message: "The record was retrieved successfully.",
 		Data:    record,
 	}
 }

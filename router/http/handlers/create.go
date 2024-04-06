@@ -80,9 +80,8 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	options, err := decode[CreateOptions](r)
 	if err != nil {
-		write(w, http.StatusInternalServerError, &response{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid request options",
+		write(w, http.StatusBadRequest, &response{
+			Message: "Invalid request options.",
 			Err:     err,
 		})
 		return

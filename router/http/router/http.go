@@ -77,5 +77,20 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		Logger:    router.log,
 	}))
 
+	router.Handle("GET /{id}", handlers.NewGetHandler(&handlers.GetHandlerConfig{
+		Dialector: router.dialector,
+		Logger:    router.log,
+	}))
+
+	router.Handle("PATCH /{id}", handlers.NewUpdateHandler(&handlers.UpdateHandlerConfig{
+		Dialector: router.dialector,
+		Logger:    router.log,
+	}))
+
+	router.Handle("DELETE /{id}", handlers.NewDeleteHandler(&handlers.DeleteHandlerConfig{
+		Dialector: router.dialector,
+		Logger:    router.log,
+	}))
+
 	return &router
 }
