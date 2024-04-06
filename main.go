@@ -10,7 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/mrinalwahal/service/pkg/middleware"
-	"github.com/mrinalwahal/service/router"
+	"github.com/mrinalwahal/service/router/http/router"
 	"gorm.io/driver/postgres"
 )
 

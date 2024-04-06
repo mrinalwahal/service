@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/google/uuid"
+	slogGorm "github.com/orandin/slog-gorm"
 	"gorm.io/gorm"
 )
 
@@ -16,15 +18,46 @@ type DB interface {
 }
 
 type Config struct {
-	DB *gorm.DB
+
+	// Gorm database dialector to use.
+	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	//
+	// This field is mandatory.
+	Dialector gorm.Dialector
+
+	// Logger is the `log/slog` instance that will be used to log messages.
+	// Default: `slog.DefaultLogger`
+	//
+	// This field is optional.
+	Logger *slog.Logger
 }
 
-func NewDB(config *Config) DB {
-	db := Database{
-		conn: config.DB,
+func NewDB(config *Config) (DB, error) {
+
+	logger := config.Logger
+	if logger == nil {
+		logger = slog.Default()
 	}
 
-	return &db
+	//	Setup the gorm logger.
+	handler := logger.With("layer", "database").Handler()
+	gormLogger := slogGorm.New(
+		slogGorm.WithHandler(handler), // since v1.3.0
+		slogGorm.WithTraceAll(),       // trace all messages
+	)
+
+	conn, err := gorm.Open(config.Dialector, &gorm.Config{
+		Logger: gormLogger,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	db := Database{
+		conn: conn,
+	}
+
+	return &db, nil
 }
 
 type Database struct {
