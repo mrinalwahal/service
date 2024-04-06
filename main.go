@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/mrinalwahal/service/handler"
 	"github.com/mrinalwahal/service/pkg/middleware"
+	"github.com/mrinalwahal/service/router"
 )
 
 func main() {
@@ -38,23 +38,15 @@ func main() {
 		With("environment", os.Getenv("ENV"))
 	//With("release", "v1.0.0")
 
-	//	Initialize the server.
-	router := http.NewServeMux()
-
-	h := handler.NewHTTPHandler(&handler.HTTPHandlerConfig{
-		// Prefix: "/v1",
+	//	Initialize the router.
+	router := router.NewHTTPRouter(&router.HTTPRouterConfig{
 		Logger: logger,
 	})
 
-	// Health check endpoint.
-	// Returns OK if the server is running.
-	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	// CRUD routes.
-	router.HandleFunc("POST /v1", handle(h.Create))
-	// router.HandleFunc("GET /v1/{id}", handle(h.Get))
+	// h := handler.NewHTTPHandler(&handler.HTTPHandlerConfig{
+	// 	// Prefix: "/v1",
+	// 	Logger: logger,
+	// })
 
 	// Prepare the middleware chain.
 	// The order of the middlewares is important.
@@ -72,10 +64,14 @@ func main() {
 	// 	Logger:    logger,
 	// })
 
+	// Prepare the base router.
+	baseRouter := http.NewServeMux()
+	baseRouter.Handle("/todo/", http.StripPrefix("/todo", router))
+
 	//	Start the server.
 	server := http.Server{
 		Addr:     ":8080",
-		Handler:  chain(router),
+		Handler:  chain(baseRouter),
 		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 	fmt.Println("Server is running on port 8080")
