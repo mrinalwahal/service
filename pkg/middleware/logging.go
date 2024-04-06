@@ -9,7 +9,6 @@ import (
 // Record is the primary structure in which a log record is maintained.
 type Record struct {
 	RequestID string        `json:"request_id,omitempty"`
-	StartTime string        `json:"start_time,omitempty"`
 	Status    int           `json:"status,omitempty"`
 	Duration  time.Duration `json:"duration,omitempty"`
 	Hostname  string        `json:"hostname,omitempty"`
@@ -26,7 +25,6 @@ func (r *Record) attributes() []slog.Attr {
 
 	return []slog.Attr{
 		{Key: "request_id", Value: slog.StringValue(r.RequestID)},
-		{Key: "start_time", Value: slog.StringValue(r.StartTime)},
 		{Key: "status", Value: slog.IntValue(r.Status)},
 		{Key: "duration", Value: slog.DurationValue(r.Duration)},
 		{Key: "hostname", Value: slog.StringValue(r.Hostname)},
@@ -45,7 +43,6 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			record := &Record{
 				RequestID: r.Context().Value(XRequestID).(string),
-				StartTime: start.Format(time.RFC3339),
 				//Status:    writer.Status(),
 				Duration: time.Since(start),
 				Hostname: r.Host,

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 )
 
@@ -20,18 +19,6 @@ type Response struct {
 // This method is required to implement the `error` interface.
 func (r *Response) Error() string {
 	return r.Message
-}
-
-// Convert the response to logger compatible.
-func (r *Response) LogValue() slog.Value {
-
-	//	Marshal the response to string.
-	data, err := json.Marshal(r)
-	if err != nil {
-		return slog.StringValue("failed to marshal response")
-	}
-
-	return slog.StringValue(string(data))
 }
 
 // WriteJSON writes the data to the supplied http response writer.

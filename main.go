@@ -53,7 +53,7 @@ func main() {
 	})
 
 	// CRUD routes.
-	router.HandleFunc("POST /v1/", handler.HandlerFunc(handler.Create))
+	router.HandleFunc("POST /v1", handler.HandlerFunc(handler.Create))
 	router.HandleFunc("GET /v1/{id}", handler.HandlerFunc(handler.Get))
 
 	// Prepare the middleware chain.
