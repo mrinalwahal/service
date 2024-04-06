@@ -4,10 +4,31 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type HTTPHandlerConfig struct {
+
+	// Database dialector to use.
+	// Default: `gorm.PostgresDialect`
+	//
+	// This field is mandatory.
+	Dialector *gorm.Dialector
+
+	// Prefix is the prefix for all the routes.
+	// Example: `/v1`
+	// Default: `""`
+	//
+	// This field is optional.
+	Prefix string
+
+	// Router is a `http.ServeMux` instance that will be used to register the routes.
+	// If this field is provided, all the handlers with default route patterns will be automatically registered on this router.
+	// Avoid using this field if you want to register the routes manually.
+	// Default: `nil`
+	//
+	// This field is optional.
+	// Router *http.ServeMux
 
 	//	Logger is the `log/slog` instance that will be used to log messages.
 	//	Default: `slog.DefaultLogger`
@@ -17,16 +38,26 @@ type HTTPHandlerConfig struct {
 }
 
 type HTTPHandler struct {
-	log *slog.Logger
+	dialector *gorm.Dialector
+	log       *slog.Logger
+}
+
+func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Get the handler function for the request.
+	// handlerFunc, ok := h.routes[r.Method+" "+r.URL.Path]
 }
 
 // NewHTTPHandler creates a new instance of `HTTPHandler`.
 func NewHTTPHandler(config *HTTPHandlerConfig) *HTTPHandler {
-	if config.Logger == nil {
-		config.Logger = slog.Default()
-	}
+
 	handler := HTTPHandler{
-		log: config.Logger,
+		log:       config.Logger,
+		dialector: config.Dialector,
+	}
+
+	// Set the default logger if not provided.
+	if handler.log == nil {
+		handler.log = slog.Default()
 	}
 
 	return &handler
@@ -48,23 +79,23 @@ func (h *HTTPHandler) Create(req *http.Request) error {
 	}
 }
 
-// Get handler retrieves a specific record by it's UUID.
-func (h *HTTPHandler) Get(req *http.Request) error {
+// // Get handler retrieves a specific record by it's UUID.
+// func (h *HTTPHandler) Get(req *http.Request) error {
 
-	// Get the record's UUID from the request path.
-	_, err := uuid.Parse(req.PathValue("id"))
-	if err != nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid record ID.",
-			Err:     err,
-		}
-	}
+// 	// Get the record's UUID from the request path.
+// 	_, err := uuid.Parse(req.PathValue("id"))
+// 	if err != nil {
+// 		return &Response{
+// 			Status:  http.StatusBadRequest,
+// 			Message: "Invalid record ID.",
+// 			Err:     err,
+// 		}
+// 	}
 
-	return &Response{
-		Status: http.StatusNotImplemented,
-	}
-}
+// 	return &Response{
+// 		Status: http.StatusNotImplemented,
+// 	}
+// }
 
 // // List handler retrieves all records.
 // func (h *HTTPHandler) List(req *http.Request) error {

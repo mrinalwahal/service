@@ -7,6 +7,10 @@ import (
 	"github.com/mrinalwahal/service/handler"
 )
 
+//
+// Utility functions.
+//
+
 func handle(handlerFunc func(*http.Request) error) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if err := handlerFunc(req); err != nil {

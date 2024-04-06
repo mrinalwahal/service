@@ -54,7 +54,7 @@ func main() {
 
 	// CRUD routes.
 	router.HandleFunc("POST /v1", handle(h.Create))
-	router.HandleFunc("GET /v1/{id}", handle(h.Get))
+	// router.HandleFunc("GET /v1/{id}", handle(h.Get))
 
 	// Prepare the middleware chain.
 	// The order of the middlewares is important.
@@ -74,8 +74,9 @@ func main() {
 
 	//	Start the server.
 	server := http.Server{
-		Addr:    ":8080",
-		Handler: chain(router),
+		Addr:     ":8080",
+		Handler:  chain(router),
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 	fmt.Println("Server is running on port 8080")
 	server.ListenAndServe()
