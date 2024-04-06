@@ -5,20 +5,33 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/dyninc/qstring"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
 	"gorm.io/gorm"
 )
 
-// CreateOptions represents the options for creating a record.
-type CreateOptions struct {
+// ListOptions represents the options for listing records.
+type ListOptions struct {
+
+	//	Number of records to skip.
+	Skip int `query:"skip" validate:"gte=0"`
+
+	//	Number of records to return.
+	Limit int `query:"limit" validate:"gte=0,lte=100"`
+
+	//	Order by field.
+	OrderBy string `query:"orderBy" validate:"oneof=created_at updated_at title"`
+
+	//	Order by direction.
+	OrderDirection string `query:"orderDirection" validate:"oneof=asc desc"`
 
 	//	Title of the record.
-	Title string `json:"title" validate:"required"`
+	Title string `query:"name"`
 }
 
-// Create handler create a new record.
-type CreateHandler struct {
+// List handler lists the records.
+type ListHandler struct {
 
 	// Gorm database dialector to use.
 	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
@@ -33,7 +46,7 @@ type CreateHandler struct {
 	// Options contains the payload received in the incoming request.
 	// This is useful in passing the request payload to the service layer.
 	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
-	options *CreateOptions
+	options *ListOptions
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -42,7 +55,7 @@ type CreateHandler struct {
 	log *slog.Logger
 }
 
-type CreateHandlerConfig struct {
+type ListHandlerConfig struct {
 
 	// Gorm database dialector to use.
 	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
@@ -57,9 +70,9 @@ type CreateHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-// NewCreateHandler creates a new instance of `CreateHandler`.
-func NewCreateHandler(config *CreateHandlerConfig) *CreateHandler {
-	handler := CreateHandler{
+// NewListHandler lists a new instance of `ListHandler`.
+func NewListHandler(config *ListHandlerConfig) *ListHandler {
+	handler := ListHandler{
 		log:       config.Logger,
 		dialector: config.Dialector,
 	}
@@ -69,16 +82,17 @@ func NewCreateHandler(config *CreateHandlerConfig) *CreateHandler {
 		handler.log = slog.Default()
 	}
 
-	handler.log = handler.log.With("handler", "create")
+	handler.log = handler.log.With("handler", "list")
 
 	return &handler
 }
 
 // ServeHTTP handles the incoming HTTP request.
-func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
-	options, err := decode[CreateOptions](r)
+	var options ListOptions
+	err := qstring.Unmarshal(r.URL.Query(), &options)
 	if err != nil {
 		write(w, http.StatusInternalServerError, &response{
 			Status:  http.StatusBadRequest,
@@ -119,12 +133,12 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *CreateHandler) validate(ctx context.Context) error {
+func (h *ListHandler) validate(ctx context.Context) error {
 	return nil
 }
 
 // function applies the fundamental business logic to complete required operation.
-func (h *CreateHandler) function(ctx context.Context) error {
+func (h *ListHandler) function(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{
@@ -133,20 +147,20 @@ func (h *CreateHandler) function(ctx context.Context) error {
 	})
 
 	// Call the service method that performs the required operation.
-	record, err := svc.Create(ctx, &service.CreateOptions{
+	records, err := svc.List(ctx, &service.ListOptions{
 		Title: h.options.Title,
 	})
 	if err != nil {
 		return &response{
 			Status:  http.StatusInternalServerError,
-			Message: "Failed to create the record.",
+			Message: "Failed to list the records.",
 			Err:     err,
 		}
 	}
 
 	return &response{
-		Status:  http.StatusCreated,
-		Message: "The record was created successfully.",
-		Data:    record,
+		Status:  http.StatusOK,
+		Message: "The records were retrieved successfully.",
+		Data:    records,
 	}
 }

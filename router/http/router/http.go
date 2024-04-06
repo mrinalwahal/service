@@ -72,5 +72,10 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		Logger:    router.log,
 	}))
 
+	router.Handle("GET /", handlers.NewListHandler(&handlers.ListHandlerConfig{
+		Dialector: router.dialector,
+		Logger:    router.log,
+	}))
+
 	return &router
 }
