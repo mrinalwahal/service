@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// CreateBody represents the options for creating a todo.
-type CreateBody struct {
+// CreateOptions represents the options for creating a todo.
+type CreateOptions struct {
 
 	//	Title of the todo.
 	Title string `json:"title" validate:"required"`
@@ -30,8 +30,10 @@ type CreateHandler struct {
 	// We would ideally open this at the time of serving the request and keep it open for all base functions to use it.
 	db db.DB
 
-	// Body contains the payload received in the incoming request body.
-	body *CreateBody
+	// Options contains the payload received in the incoming request.
+	// This is useful in passing the request payload to the service layer.
+	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
+	options *CreateOptions
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -75,8 +77,8 @@ func NewCreateHandler(config *CreateHandlerConfig) *CreateHandler {
 // ServeHTTP handles the incoming HTTP request.
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	// Decode the request body.
-	body, err := decode[CreateBody](r)
+	// Decode the request options.
+	options, err := decode[CreateOptions](r)
 	if err != nil {
 		write(w, http.StatusInternalServerError, &response{
 			Status:  http.StatusBadRequest,
@@ -85,7 +87,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	h.body = &body
+	h.options = &options
 
 	// Load the context.
 	ctx := r.Context()
@@ -132,7 +134,7 @@ func (h *CreateHandler) function(ctx context.Context) error {
 
 	// Call the service method that performs the required operation.
 	record, err := svc.Create(ctx, &service.CreateOptions{
-		Title: h.body.Title,
+		Title: h.options.Title,
 	})
 	if err != nil {
 		return &response{
