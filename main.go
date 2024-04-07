@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/pkg/middleware"
-	"github.com/mrinalwahal/service/router/http/router"
+	"github.com/mrinalwahal/service/transport/http/router"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -50,14 +51,14 @@ func main() {
 	)
 
 	// Open a database connection.
-	db, err := gorm.Open(postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"), &gorm.Config{
+	conn, err := gorm.Open(postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	sqlDB, err := db.DB()
+	sqlDB, err := conn.DB()
 	if err != nil {
 		panic(err)
 	}
@@ -69,6 +70,11 @@ func main() {
 	sqlDB.SetConnMaxIdleTime(time.Minute * 5)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetMaxIdleConns(10)
+
+	// Connect the database layer.
+	db := db.NewDB(&db.Config{
+		DB: conn,
+	})
 
 	// GORM provides Prometheus plugin to collect DBStats or user-defined metrics
 	// https://gorm.io/docs/prometheus.html

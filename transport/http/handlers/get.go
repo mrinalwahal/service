@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // Get handler gets the record.
@@ -32,11 +31,11 @@ type GetHandler struct {
 
 type GetHandlerConfig struct {
 
-	// Database connection.
+	// Database layer.
 	// The connection should already be open.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	DB db.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -48,6 +47,7 @@ type GetHandlerConfig struct {
 // NewGetHandler gets a new instance of `GetHandler`.
 func NewGetHandler(config *GetHandlerConfig) *GetHandler {
 	handler := GetHandler{
+		db:  config.DB,
 		log: config.Logger,
 	}
 
@@ -56,12 +56,6 @@ func NewGetHandler(config *GetHandlerConfig) *GetHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "get")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB: config.DB,
-	})
-	handler.db = db
 
 	return &handler
 }

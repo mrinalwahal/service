@@ -8,7 +8,6 @@ import (
 	"github.com/dyninc/qstring"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // ListOptions represents the options for listing records.
@@ -53,11 +52,11 @@ type ListHandler struct {
 
 type ListHandlerConfig struct {
 
-	// Database connection.
+	// Database layer.
 	// The connection should already be open.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	DB db.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -69,6 +68,7 @@ type ListHandlerConfig struct {
 // NewListHandler lists a new instance of `ListHandler`.
 func NewListHandler(config *ListHandlerConfig) *ListHandler {
 	handler := ListHandler{
+		db:  config.DB,
 		log: config.Logger,
 	}
 
@@ -77,12 +77,6 @@ func NewListHandler(config *ListHandlerConfig) *ListHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "list")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB: config.DB,
-	})
-	handler.db = db
 
 	return &handler
 }

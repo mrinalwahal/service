@@ -4,18 +4,18 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/mrinalwahal/service/router/http/handlers"
-	"gorm.io/gorm"
+	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/transport/http/handlers"
 )
 
 type HTTPRouter struct {
 	*http.ServeMux
 
-	// Database connection.
+	// Database layer connection.
 	// The connection should already be open.
 	//
 	// This field is mandatory.
-	db *gorm.DB
+	db db.DB
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -32,11 +32,11 @@ type HTTPRouter struct {
 
 type HTTPRouterConfig struct {
 
-	// Database connection.
+	// Database layer connection.
 	// The connection should already be open.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	DB db.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`

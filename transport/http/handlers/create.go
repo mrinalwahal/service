@@ -5,14 +5,19 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
-// Delete handler deletes the record.
-type DeleteHandler struct {
+// CreateOptions represents the options for creating a record.
+type CreateOptions struct {
+
+	//	Title of the record.
+	Title string `json:"title" validate:"required"`
+}
+
+// Create handler create a new record.
+type CreateHandler struct {
 
 	// Database layer.
 	// The connection should already be open.
@@ -20,8 +25,10 @@ type DeleteHandler struct {
 	// This field is mandatory.
 	db db.DB
 
-	// The UUID of the record to delete.
-	id uuid.UUID
+	// Options contains the payload received in the incoming request.
+	// This is useful in passing the request payload to the service layer.
+	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
+	options *CreateOptions
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -30,13 +37,13 @@ type DeleteHandler struct {
 	log *slog.Logger
 }
 
-type DeleteHandlerConfig struct {
+type CreateHandlerConfig struct {
 
-	// Database connection.
+	// Database layer.
 	// The connection should already be open.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	DB db.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -45,9 +52,10 @@ type DeleteHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-// NewDeleteHandler deletes a new instance of `DeleteHandler`.
-func NewDeleteHandler(config *DeleteHandlerConfig) *DeleteHandler {
-	handler := DeleteHandler{
+// NewCreateHandler creates a new instance of `CreateHandler`.
+func NewCreateHandler(config *CreateHandlerConfig) *CreateHandler {
+	handler := CreateHandler{
+		db:  config.DB,
 		log: config.Logger,
 	}
 
@@ -55,29 +63,24 @@ func NewDeleteHandler(config *DeleteHandlerConfig) *DeleteHandler {
 	if handler.log == nil {
 		handler.log = slog.Default()
 	}
-	handler.log = handler.log.With("handler", "delete")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB: config.DB,
-	})
-	handler.db = db
+	handler.log = handler.log.With("handler", "create")
 
 	return &handler
 }
 
 // ServeHTTP handles the incoming HTTP request.
-func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
-	id, err := uuid.Parse(r.PathValue("id"))
+	options, err := decode[CreateOptions](r)
 	if err != nil {
 		write(w, http.StatusBadRequest, &response{
-			Message: "Invalid ID.",
+			Message: "Invalid request options.",
+			Err:     err,
 		})
 		return
 	}
-	h.id = id
+	h.options = &options
 
 	// Load the context.
 	ctx := r.Context()
@@ -96,30 +99,34 @@ func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *DeleteHandler) validate(ctx context.Context) error {
+func (h *CreateHandler) validate(ctx context.Context) error {
 	return nil
 }
 
 // function applies the fundamental business logic to complete required operation.
-func (h *DeleteHandler) function(ctx context.Context) error {
+func (h *CreateHandler) function(ctx context.Context) error {
 
-	// Delete the appropriate business service.
+	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{
 		DB:     h.db,
 		Logger: h.log,
 	})
 
 	// Call the service method that performs the required operation.
-	if err := svc.Delete(ctx, h.id); err != nil {
+	record, err := svc.Create(ctx, &service.CreateOptions{
+		Title: h.options.Title,
+	})
+	if err != nil {
 		return &response{
 			Status:  http.StatusInternalServerError,
-			Message: "Failed to delete the record.",
+			Message: "Failed to create the record.",
 			Err:     err,
 		}
 	}
 
 	return &response{
-		Status:  http.StatusOK,
-		Message: "The record was deleted successfully.",
+		Status:  http.StatusCreated,
+		Message: "The record was created successfully.",
+		Data:    record,
 	}
 }
