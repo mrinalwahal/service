@@ -80,8 +80,7 @@ func NewListHandler(config *ListHandlerConfig) *ListHandler {
 
 	// Connect the database layer.
 	db := db.NewDB(&db.Config{
-		DB:     config.DB,
-		Logger: handler.log,
+		DB: config.DB,
 	})
 	handler.db = db
 

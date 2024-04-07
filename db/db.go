@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// DB interface contains the signature of the database layer.
 type DB interface {
 	Create(context.Context, *CreateOptions) (*Record, error)
 	Get(context.Context, uuid.UUID) (*Record, error)
