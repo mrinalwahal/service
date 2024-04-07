@@ -16,7 +16,7 @@ type environment struct {
 }
 
 // Setup the test environment.
-func setup(t *testing.T) *environment {
+func prepare(t *testing.T) *environment {
 
 	// Open a test database connection with SQLite.
 	conn, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -50,7 +50,12 @@ func setup(t *testing.T) *environment {
 func Test_database_Create(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := prepare(t)
+
+	// Initialize the database.
+	db := &database{
+		conn: environment.conn,
+	}
 
 	type fields struct {
 		conn *gorm.DB
@@ -120,9 +125,6 @@ func Test_database_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := &database{
-				conn: tt.fields.conn,
-			}
 			got, err := db.Create(tt.args.ctx, tt.args.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("database.Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -138,7 +140,7 @@ func Test_database_Create(t *testing.T) {
 func Test_database_List(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := prepare(t)
 
 	// Initialize the database.
 	db := &database{
@@ -204,7 +206,7 @@ func Test_database_List(t *testing.T) {
 func Test_database_Get(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := prepare(t)
 
 	// Initialize the database.
 	db := &database{
@@ -264,7 +266,7 @@ func Test_database_Get(t *testing.T) {
 func Test_database_Update(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := prepare(t)
 
 	// Initialize the database.
 	db := &database{
@@ -325,7 +327,7 @@ func Test_database_Update(t *testing.T) {
 func Test_database_Delete(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := prepare(t)
 
 	// Initialize the database.
 	db := &database{
