@@ -1,5 +1,7 @@
 # Database layer
 
+This layer contains handlers which interact directly with the database. Typically, other layers of our service, including service layer and transport layer, would interact with the database through this layer if they need to.
+
 ## Migrations
 
 - To compare the models with database schema, add the models to `/scripts/loader.go`. This will help generate the migrations for your models.

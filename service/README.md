@@ -1,5 +1,7 @@
 # Service Layer
 
+This layer contains the fundamental business logic of this service.
+
 ## Testing
 
 ### Unit / Whitebox Tests
