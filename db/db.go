@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -23,21 +22,9 @@ type Config struct {
 	//
 	// This field is mandatory.
 	DB *gorm.DB
-
-	// Logger is the `log/slog` instance that will be used to log messages.
-	// Default: `slog.DefaultLogger`
-	//
-	// This field is optional.
-	Logger *slog.Logger
 }
 
 func NewDB(config *Config) DB {
-
-	logger := config.Logger
-	if logger == nil {
-		logger = slog.Default()
-	}
-
 	db := database{
 		conn: config.DB,
 	}
