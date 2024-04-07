@@ -66,7 +66,7 @@ type ListHandlerConfig struct {
 }
 
 // NewListHandler lists a new instance of `ListHandler`.
-func NewListHandler(config *ListHandlerConfig) *ListHandler {
+func NewListHandler(config *ListHandlerConfig) Handler {
 	handler := ListHandler{
 		db:  config.DB,
 		log: config.Logger,
@@ -100,25 +100,25 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.Validate(ctx); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.Process(ctx); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *ListHandler) validate(ctx context.Context) error {
+func (h *ListHandler) Validate(ctx context.Context) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *ListHandler) function(ctx context.Context) error {
+// Process applies the fundamental business logic to complete required operation.
+func (h *ListHandler) Process(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{

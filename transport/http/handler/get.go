@@ -45,7 +45,7 @@ type GetHandlerConfig struct {
 }
 
 // NewGetHandler gets a new instance of `GetHandler`.
-func NewGetHandler(config *GetHandlerConfig) *GetHandler {
+func NewGetHandler(config *GetHandlerConfig) Handler {
 	handler := GetHandler{
 		db:  config.DB,
 		log: config.Logger,
@@ -77,25 +77,25 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.Validate(ctx); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.Process(ctx); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *GetHandler) validate(ctx context.Context) error {
+func (h *GetHandler) Validate(ctx context.Context) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *GetHandler) function(ctx context.Context) error {
+// Process applies the fundamental business logic to complete required operation.
+func (h *GetHandler) Process(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{

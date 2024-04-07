@@ -57,7 +57,7 @@ type UpdateHandlerConfig struct {
 }
 
 // NewUpdateHandler updates a new instance of `UpdateHandler`.
-func NewUpdateHandler(config *UpdateHandlerConfig) *UpdateHandler {
+func NewUpdateHandler(config *UpdateHandlerConfig) Handler {
 	handler := UpdateHandler{
 		db:  config.DB,
 		log: config.Logger,
@@ -99,25 +99,25 @@ func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.Validate(ctx); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.Process(ctx); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *UpdateHandler) validate(ctx context.Context) error {
+func (h *UpdateHandler) Validate(ctx context.Context) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *UpdateHandler) function(ctx context.Context) error {
+// Process applies the fundamental business logic to complete required operation.
+func (h *UpdateHandler) Process(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{
