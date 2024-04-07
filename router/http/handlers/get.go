@@ -14,14 +14,10 @@ import (
 // Get handler gets the record.
 type GetHandler struct {
 
-	// Gorm database dialector to use.
-	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	// Database layer.
+	// The connection should already be open.
 	//
 	// This field is mandatory.
-	dialector gorm.Dialector
-
-	// Database connection based on dialector.
-	// We would ideally open this at the time of serving the request and keep it open for all base functions to use it.
 	db db.DB
 
 	// The UUID of the record to get.
@@ -36,11 +32,11 @@ type GetHandler struct {
 
 type GetHandlerConfig struct {
 
-	// Gorm database dialector to use.
-	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	// Database connection.
+	// The connection should already be open.
 	//
 	// This field is mandatory.
-	Dialector gorm.Dialector
+	DB *gorm.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -52,16 +48,21 @@ type GetHandlerConfig struct {
 // NewGetHandler gets a new instance of `GetHandler`.
 func NewGetHandler(config *GetHandlerConfig) *GetHandler {
 	handler := GetHandler{
-		log:       config.Logger,
-		dialector: config.Dialector,
+		log: config.Logger,
 	}
 
 	// Set the default logger if not provided.
 	if handler.log == nil {
 		handler.log = slog.Default()
 	}
-
 	handler.log = handler.log.With("handler", "get")
+
+	// Connect the database layer.
+	db := db.NewDB(&db.Config{
+		DB:     config.DB,
+		Logger: handler.log,
+	})
+	handler.db = db
 
 	return &handler
 }
@@ -81,19 +82,6 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Load the context.
 	ctx := r.Context()
-
-	// Open the database connection.
-	db, err := db.NewDB(&db.Config{
-		Dialector: h.dialector,
-		Logger:    h.log,
-	})
-	if err != nil {
-		write(w, http.StatusInternalServerError, &response{
-			Message: "Failed to connect to the database.",
-		})
-		return
-	}
-	h.db = db
 
 	// Validate the request.
 	if err := h.validate(ctx); err != nil {

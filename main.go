@@ -7,11 +7,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/router/http/router"
 	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	slogGorm "github.com/orandin/slog-gorm"
 )
 
 func main() {
@@ -38,10 +42,52 @@ func main() {
 		With("service", "record").
 		With("environment", os.Getenv("ENV"))
 
+	//	Setup the gorm logger.
+	handler := logger.With("layer", "database").Handler()
+	gormLogger := slogGorm.New(
+		slogGorm.WithHandler(handler), // since v1.3.0
+		slogGorm.WithTraceAll(),       // trace all messages
+	)
+
+	// Open a database connection.
+	db, err := gorm.Open(postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"), &gorm.Config{
+		Logger: gormLogger,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+
+	sqlDB.SetConnMaxIdleTime(time.Minute * 5)
+	// sqlDB.SetConnMaxLifetime(time.Minute * 5)
+	sqlDB.SetMaxOpenConns(10)
+	// sqlDB.SetMaxIdleConns(0)
+
+	// GORM provides Prometheus plugin to collect DBStats or user-defined metrics
+	// https://gorm.io/docs/prometheus.html
+	// https://github.com/go-gorm/prometheus
+	//
+	// db.Use(prometheus.New(prometheus.Config{
+	// 	DBName:          "db1",                       // use `DBName` as metrics label
+	// 	RefreshInterval: 15,                          // Refresh metrics interval (default 15 seconds)
+	// 	PushAddr:        "prometheus pusher address", // push metrics if `PushAddr` configured
+	// 	StartServer:     true,                        // start http server to expose metrics
+	// 	HTTPServerPort:  8080,                        // configure http server port, default port 8080 (if you have configured multiple instances, only the first `HTTPServerPort` will be used to start server)
+	// 	MetricsCollector: []prometheus.MetricsCollector{
+	// 		&prometheus.MySQL{
+	// 			VariableNames: []string{"Threads_running"},
+	// 		},
+	// 	}, // user defined metrics
+	// }))
+
 	//	Initialize the router.
 	router := router.NewHTTPRouter(&router.HTTPRouterConfig{
-		Dialector: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"),
-		Logger:    logger,
+		DB:     db,
+		Logger: logger,
 	})
 
 	// Prepare the middleware chain.
