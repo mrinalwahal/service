@@ -1,5 +1,21 @@
 # Service Layer
 
+## Testing
+
+### Unit / Whitebox Tests
+
+All the essential unit tests to be covered:
+
+- [x] Create a new record.
+- [x] List all the records with supported filters.
+- [x] Get a record by it's ID.
+- [x] Update a record with new options.
+- [x] Delete a record.
+
+### Integration / Blackbox Tests
+
+To write itnegration tests, you would typically want to mock this layer's interfaces and consume them outside the package.
+
 **To generate mock files of the service interface, use the following commands:**
 
 1. Install mockgen.

@@ -1,9 +1,27 @@
 # Database layer
 
+## Migrations
+
 - To compare the models with database schema, add the models to `/scripts/loader.go`. This will help generate the migrations for your models.
-- To generate a new migrations, run `/scripts/migrate.sh [name_of_your_migration]`. For example: `/scripts/migrate.sh init` will generate a new migration in `/migrations` directory.
-- To compare the state/status of the migrations against the database schema, run `/scripts/status.sh`. This will print which migrations are pending to be applied and which ones have been applied.
-- To apply any pending migrations, run `/scripts/apply.sh`.
+- To generate a new migration, run `./scripts/migrate.sh [name_of_your_migration]`. For example: `./scripts/migrate.sh init` will generate a new migration called "init" in `./migrations` directory.
+- To compare the state/status of the migrations against the database schema, run `./scripts/status.sh`. This will print which migrations are pending to be applied and which ones have been applied.
+- To apply all the pending migrations, run `./scripts/apply.sh`.
+
+## Testing
+
+### Unit / Whitebox Tests
+
+All the essential unit tests to be covered:
+
+- [x] Create a new record in the database.
+- [x] Retrieve and list all the records from the database with supported filters.
+- [x] Get a record from the database using it's ID.
+- [x] Update a record with new options in the database.
+- [x] Delete a record from the database using it's ID.
+
+### Integration / Blackbox Tests
+
+To write itnegration tests, you would typically want to mock this layer's interfaces and consume them outside the package.
 
 **To generate mock files of the service interface, use the following commands:**
 
@@ -13,7 +31,7 @@
     ```
 1. Generate mocks.
     ```
-    mockgen -destination=mock.go -source=service.go -package=record
+    mockgen -destination=mock.go -source=db.go -package=db
     ```
 
 This will generate the file `mock.go` which will contains your mock service. You can import it in your tests with:
