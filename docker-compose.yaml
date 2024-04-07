@@ -8,11 +8,11 @@ services:
 
   postgres:
     image: postgres:latest
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-    ports:
-      - 5432:5432
     volumes:
       - data:/var/lib/postgresql
     networks:
@@ -47,6 +47,9 @@ services:
       - default
 
   grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -70,8 +73,5 @@ services:
           editable: false
         EOF
         /run.sh
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
     networks:
       - default
