@@ -24,7 +24,7 @@ To write itnegration tests, you would typically want to mock this layer's interf
     ```
 1. Generate mocks.
     ```
-    mockgen -destination=mock.go -source=service.go -package=record
+    mockgen -destination=mock.go -source=service.go -package=service
     ```
 
 This will generate the file `mock.go` which will contains your mock service. You can import it in your tests with:
