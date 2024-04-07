@@ -53,20 +53,20 @@ func NewDB(config *Config) (DB, error) {
 		return nil, err
 	}
 
-	db := Database{
+	db := database{
 		conn: conn,
 	}
 
 	return &db, nil
 }
 
-type Database struct {
+type database struct {
 
 	//	Database Connection
 	conn *gorm.DB
 }
 
-func (db *Database) Create(ctx context.Context, options *CreateOptions) (*Record, error) {
+func (db *database) Create(ctx context.Context, options *CreateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
 	var payload Record
@@ -79,19 +79,7 @@ func (db *Database) Create(ctx context.Context, options *CreateOptions) (*Record
 	return &payload, nil
 }
 
-func (db *Database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
-	txn := db.conn.WithContext(ctx)
-
-	var payload Record
-	payload.ID = ID
-	result := txn.First(&payload)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &payload, nil
-}
-
-func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Record, error) {
+func (db *database) List(ctx context.Context, options *ListOptions) ([]*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
 	var payload []*Record
@@ -118,7 +106,19 @@ func (db *Database) List(ctx context.Context, options *ListOptions) ([]*Record, 
 	return payload, nil
 }
 
-func (db *Database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Record, error) {
+func (db *database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
+	txn := db.conn.WithContext(ctx)
+
+	var payload Record
+	payload.ID = ID
+	result := txn.First(&payload)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &payload, nil
+}
+
+func (db *database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
 
 	var payload Record
@@ -129,69 +129,9 @@ func (db *Database) Update(ctx context.Context, id uuid.UUID, options *UpdateOpt
 	return db.Get(ctx, id)
 }
 
-func (db *Database) Delete(ctx context.Context, ID uuid.UUID) error {
+func (db *database) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Record
-	payload.ID = ID
-	result := txn.Delete(&payload)
-	return result.Error
-}
-
-func create(txn *gorm.DB, options *CreateOptions) (*Record, error) {
-	var payload Record
-	payload.Title = options.Title
-
-	result := txn.Create(&payload)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &payload, nil
-}
-
-func get(txn *gorm.DB, ID uuid.UUID) (*Record, error) {
-	var payload Record
-	payload.ID = ID
-	result := txn.First(&payload)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &payload, nil
-}
-
-func list(txn *gorm.DB, options *ListOptions) ([]*Record, error) {
-	var payload []*Record
-
-	query := txn
-	if options.Limit > 0 {
-		query = query.Limit(options.Limit)
-	}
-	if options.Skip > 0 {
-		query = query.Offset(options.Skip)
-	}
-	if options.OrderBy != "" {
-		query = query.Order(options.OrderBy + " " + options.OrderDirection)
-	}
-
-	//	Add conditions to the query.
-	where := Record{
-		Title: options.Title,
-	}
-
-	if result := query.Where(&where).Find(&payload); result.Error != nil {
-		return nil, result.Error
-	}
-	return payload, nil
-}
-
-func update(txn *gorm.DB, id uuid.UUID, options *UpdateOptions) error {
-	var payload Record
-	payload.ID = id
-	result := txn.Model(&payload).Updates(options)
-	return result.Error
-}
-
-func delete(txn *gorm.DB, ID uuid.UUID) error {
 	var payload Record
 	payload.ID = ID
 	result := txn.Delete(&payload)
