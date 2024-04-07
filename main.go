@@ -62,10 +62,13 @@ func main() {
 		panic(err)
 	}
 
+	// Configure connection pooling.
+	//
+	// Link: https://gorm.io/docs/generic_interface.html#Connection-Pool
+	sqlDB.SetConnMaxLifetime(time.Hour)
 	sqlDB.SetConnMaxIdleTime(time.Minute * 5)
-	// sqlDB.SetConnMaxLifetime(time.Minute * 5)
-	sqlDB.SetMaxOpenConns(10)
-	// sqlDB.SetMaxIdleConns(0)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxIdleConns(10)
 
 	// GORM provides Prometheus plugin to collect DBStats or user-defined metrics
 	// https://gorm.io/docs/prometheus.html
@@ -114,4 +117,9 @@ func main() {
 
 	fmt.Println("Server is running on port 8080")
 	server.ListenAndServe()
+
+	// Close the database connection.
+	if err := sqlDB.Close(); err != nil {
+		panic(err)
+	}
 }
