@@ -1,24 +1,23 @@
-package handlers
+package handler
 
 import (
 	"context"
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
 )
 
-// UpdateOptions represents the options for updating a record.
-type UpdateOptions struct {
+// CreateOptions represents the options for creating a record.
+type CreateOptions struct {
 
 	//	Title of the record.
 	Title string `json:"title" validate:"required"`
 }
 
-// Update handler update a new record.
-type UpdateHandler struct {
+// Create handler create a new record.
+type CreateHandler struct {
 
 	// Database layer.
 	// The connection should already be open.
@@ -26,13 +25,10 @@ type UpdateHandler struct {
 	// This field is mandatory.
 	db db.DB
 
-	// The UUID of the record to update.
-	id uuid.UUID
-
 	// Options contains the payload received in the incoming request.
 	// This is useful in passing the request payload to the service layer.
 	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
-	options *UpdateOptions
+	options *CreateOptions
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -41,7 +37,7 @@ type UpdateHandler struct {
 	log *slog.Logger
 }
 
-type UpdateHandlerConfig struct {
+type CreateHandlerConfig struct {
 
 	// Database layer.
 	// The connection should already be open.
@@ -56,9 +52,9 @@ type UpdateHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-// NewUpdateHandler updates a new instance of `UpdateHandler`.
-func NewUpdateHandler(config *UpdateHandlerConfig) *UpdateHandler {
-	handler := UpdateHandler{
+// NewCreateHandler creates a new instance of `CreateHandler`.
+func NewCreateHandler(config *CreateHandlerConfig) *CreateHandler {
+	handler := CreateHandler{
 		db:  config.DB,
 		log: config.Logger,
 	}
@@ -67,25 +63,16 @@ func NewUpdateHandler(config *UpdateHandlerConfig) *UpdateHandler {
 	if handler.log == nil {
 		handler.log = slog.Default()
 	}
-	handler.log = handler.log.With("handler", "update")
+	handler.log = handler.log.With("handler", "create")
 
 	return &handler
 }
 
 // ServeHTTP handles the incoming HTTP request.
-func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
-	id, err := uuid.Parse(r.PathValue("id"))
-	if err != nil {
-		write(w, http.StatusBadRequest, &response{
-			Message: "Invalid ID.",
-		})
-		return
-	}
-	h.id = id
-
-	options, err := decode[UpdateOptions](r)
+	options, err := decode[CreateOptions](r)
 	if err != nil {
 		write(w, http.StatusBadRequest, &response{
 			Message: "Invalid request options.",
@@ -112,12 +99,12 @@ func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *UpdateHandler) validate(ctx context.Context) error {
+func (h *CreateHandler) validate(ctx context.Context) error {
 	return nil
 }
 
 // function applies the fundamental business logic to complete required operation.
-func (h *UpdateHandler) function(ctx context.Context) error {
+func (h *CreateHandler) function(ctx context.Context) error {
 
 	// Get the appropriate business service.
 	svc := service.NewService(&service.Config{
@@ -126,20 +113,20 @@ func (h *UpdateHandler) function(ctx context.Context) error {
 	})
 
 	// Call the service method that performs the required operation.
-	record, err := svc.Update(ctx, h.id, &service.UpdateOptions{
+	record, err := svc.Create(ctx, &service.CreateOptions{
 		Title: h.options.Title,
 	})
 	if err != nil {
 		return &response{
 			Status:  http.StatusInternalServerError,
-			Message: "Failed to update the record.",
+			Message: "Failed to create the record.",
 			Err:     err,
 		}
 	}
 
 	return &response{
-		Status:  http.StatusOK,
-		Message: "The record was updated successfully.",
+		Status:  http.StatusCreated,
+		Message: "The record was created successfully.",
 		Data:    record,
 	}
 }

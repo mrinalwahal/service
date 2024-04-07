@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/mrinalwahal/service/db"
-	"github.com/mrinalwahal/service/transport/http/handlers"
+	"github.com/mrinalwahal/service/transport/http/handler"
 )
 
 type HTTPRouter struct {
@@ -67,27 +67,27 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		w.Write([]byte("OK"))
 	})
 
-	router.Handle("POST /", handlers.NewCreateHandler(&handlers.CreateHandlerConfig{
+	router.Handle("POST /", handler.NewCreateHandler(&handler.CreateHandlerConfig{
 		DB:     router.db,
 		Logger: router.log,
 	}))
 
-	router.Handle("GET /", handlers.NewListHandler(&handlers.ListHandlerConfig{
+	router.Handle("GET /", handler.NewListHandler(&handler.ListHandlerConfig{
 		DB:     router.db,
 		Logger: router.log,
 	}))
 
-	router.Handle("GET /{id}", handlers.NewGetHandler(&handlers.GetHandlerConfig{
+	router.Handle("GET /{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
 		DB:     router.db,
 		Logger: router.log,
 	}))
 
-	router.Handle("PATCH /{id}", handlers.NewUpdateHandler(&handlers.UpdateHandlerConfig{
+	router.Handle("PATCH /{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
 		DB:     router.db,
 		Logger: router.log,
 	}))
 
-	router.Handle("DELETE /{id}", handlers.NewDeleteHandler(&handlers.DeleteHandlerConfig{
+	router.Handle("DELETE /{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
 		DB:     router.db,
 		Logger: router.log,
 	}))
