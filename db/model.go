@@ -13,7 +13,7 @@ type Base struct {
 	// It is generated automatically when the object is created. So, you cannot pass a custom value for it.
 	//
 	// Example: "550e8400-e29b-41d4-a716-446655440000"
-	ID uuid.UUID `json:"id" gorm:"primaryKey;type:uuid;not null"`
+	ID uuid.UUID `json:"id" gorm:"primaryKey;not null;type:uuid"`
 
 	// CreatedAt is the time when the object was created.
 	// It is set automatically when the object is created.

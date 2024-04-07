@@ -11,11 +11,11 @@ import (
 type HTTPRouter struct {
 	*http.ServeMux
 
-	// Gorm database dialector to use.
-	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	// Database connection.
+	// The connection should already be open.
 	//
 	// This field is mandatory.
-	dialector gorm.Dialector
+	db *gorm.DB
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -32,11 +32,11 @@ type HTTPRouter struct {
 
 type HTTPRouterConfig struct {
 
-	// Gorm database dialector to use.
-	// Example: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata")
+	// Database connection.
+	// The connection should already be open.
 	//
 	// This field is mandatory.
-	Dialector gorm.Dialector
+	DB *gorm.DB
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -49,9 +49,9 @@ type HTTPRouterConfig struct {
 func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 
 	router := HTTPRouter{
-		ServeMux:  http.NewServeMux(),
-		dialector: config.Dialector,
-		log:       config.Logger,
+		ServeMux: http.NewServeMux(),
+		db:       config.DB,
+		log:      config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -68,28 +68,28 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 	})
 
 	router.Handle("POST /", handlers.NewCreateHandler(&handlers.CreateHandlerConfig{
-		Dialector: router.dialector,
-		Logger:    router.log,
+		DB:     router.db,
+		Logger: router.log,
 	}))
 
 	router.Handle("GET /", handlers.NewListHandler(&handlers.ListHandlerConfig{
-		Dialector: router.dialector,
-		Logger:    router.log,
+		DB:     router.db,
+		Logger: router.log,
 	}))
 
 	router.Handle("GET /{id}", handlers.NewGetHandler(&handlers.GetHandlerConfig{
-		Dialector: router.dialector,
-		Logger:    router.log,
+		DB:     router.db,
+		Logger: router.log,
 	}))
 
 	router.Handle("PATCH /{id}", handlers.NewUpdateHandler(&handlers.UpdateHandlerConfig{
-		Dialector: router.dialector,
-		Logger:    router.log,
+		DB:     router.db,
+		Logger: router.log,
 	}))
 
 	router.Handle("DELETE /{id}", handlers.NewDeleteHandler(&handlers.DeleteHandlerConfig{
-		Dialector: router.dialector,
-		Logger:    router.log,
+		DB:     router.db,
+		Logger: router.log,
 	}))
 
 	return &router

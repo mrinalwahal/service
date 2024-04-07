@@ -12,13 +12,15 @@ import (
 
 // Temporary environment that contains all the configuration required by our tests.
 type environment struct {
+
+	// Test database connection.
 	conn *gorm.DB
 }
 
 // Setup the test environment.
-func setup(t *testing.T) *environment {
+func initialize(t *testing.T) *environment {
 
-	// Open a test database connection with SQLite.
+	// Open an in-memory database connection with SQLite.
 	conn, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to open the database connection: %v", err)
@@ -47,30 +49,41 @@ func setup(t *testing.T) *environment {
 	}
 }
 
-func Test_database_Create(t *testing.T) {
+func Test_Database_Create(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := initialize(t)
 
-	type fields struct {
-		conn *gorm.DB
+	// Initialize the database.
+	db := &database{
+		conn: environment.conn,
 	}
+
 	type args struct {
 		ctx     context.Context
 		options *CreateOptions
 	}
 	tests := []struct {
-		name       string
-		fields     fields
-		args       args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "list all records"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		args args
+
+		// The validation function that will be used to validate the output.
 		validation func(*Record) error
-		wantErr    bool
+
+		// Whether we expect an error or not.
+		wantErr bool
 	}{
 		{
-			name: "Create a record",
-			fields: fields{
-				conn: environment.conn,
-			},
+			name: "create a record",
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
@@ -86,10 +99,7 @@ func Test_database_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Empty title",
-			fields: fields{
-				conn: environment.conn,
-			},
+			name: "empty title",
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
@@ -99,10 +109,7 @@ func Test_database_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Generate UUID of a new record automatically",
-			fields: fields{
-				conn: environment.conn,
-			},
+			name: "generate UUID of a new record automatically",
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
@@ -120,9 +127,6 @@ func Test_database_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db := &database{
-				conn: tt.fields.conn,
-			}
 			got, err := db.Create(tt.args.ctx, tt.args.options)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("database.Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -135,10 +139,10 @@ func Test_database_Create(t *testing.T) {
 	}
 }
 
-func Test_database_List(t *testing.T) {
+func Test_Database_List(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := initialize(t)
 
 	// Initialize the database.
 	db := &database{
@@ -155,25 +159,31 @@ func Test_database_List(t *testing.T) {
 		}
 	}
 
-	type fields struct {
-		conn *gorm.DB
-	}
 	type args struct {
 		ctx     context.Context
 		options *ListOptions
 	}
 	tests := []struct {
-		name       string
-		fields     fields
-		args       args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "list all records"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		args args
+
+		// The validation function that will be used to validate the output.
 		validation func([]*Record) error
-		wantErr    bool
+
+		// Whether we expect an error or not.
+		wantErr bool
 	}{
 		{
-			name: "List records",
-			fields: fields{
-				conn: environment.conn,
-			},
+			name: "list records",
 			args: args{
 				ctx:     context.Background(),
 				options: &ListOptions{},
@@ -201,10 +211,10 @@ func Test_database_List(t *testing.T) {
 	}
 }
 
-func Test_database_Get(t *testing.T) {
+func Test_Database_Get(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := initialize(t)
 
 	// Initialize the database.
 	db := &database{
@@ -219,18 +229,28 @@ func Test_database_Get(t *testing.T) {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	type fields struct {
-		conn *gorm.DB
-	}
 	type args struct {
 		ctx context.Context
 		ID  uuid.UUID
 	}
 	tests := []struct {
-		name       string
-		args       args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "list all records"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		args args
+
+		// The validation function that will be used to validate the output.
 		validation func(*Record) error
-		wantErr    bool
+
+		// Whether we expect an error or not.
+		wantErr bool
 	}{
 		{
 			name: "Get seed record",
@@ -261,10 +281,10 @@ func Test_database_Get(t *testing.T) {
 	}
 }
 
-func Test_database_Update(t *testing.T) {
+func Test_Database_Update(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := initialize(t)
 
 	// Initialize the database.
 	db := &database{
@@ -285,10 +305,23 @@ func Test_database_Update(t *testing.T) {
 		options *UpdateOptions
 	}
 	tests := []struct {
-		name       string
-		args       args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "list all records"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		args args
+
+		// The validation function that will be used to validate the output.
 		validation func(*Record) error
-		wantErr    bool
+
+		// Whether we expect an error or not.
+		wantErr bool
 	}{
 		{
 			name: "Update seed record",
@@ -322,10 +355,10 @@ func Test_database_Update(t *testing.T) {
 	}
 }
 
-func Test_database_Delete(t *testing.T) {
+func Test_Database_Delete(t *testing.T) {
 
 	// Setup the test environment.
-	environment := setup(t)
+	environment := initialize(t)
 
 	// Initialize the database.
 	db := &database{
@@ -345,8 +378,19 @@ func Test_database_Delete(t *testing.T) {
 		ID  uuid.UUID
 	}
 	tests := []struct {
-		name    string
-		args    args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "list all records"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		args args
+
+		// Whether we expect an error or not.
 		wantErr bool
 	}{
 		{

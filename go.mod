@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/orandin/slog-gorm v1.3.1
+	go.uber.org/mock v0.4.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gorm v1.25.9

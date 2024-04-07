@@ -1,0 +1,17 @@
+name: Migrations
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ariga/setup-atlas@v0
+
+      - name: Apply
+        uses: ariga/atlas-action/migrate/apply@v1
+        with:
+          url: ${{ secrets.DATABASE_URL }}
+          dir: ./db/migrations
