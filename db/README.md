@@ -25,7 +25,7 @@ All the essential unit tests to be covered:
 
 To write itnegration tests, you would typically want to mock this layer's interfaces and consume them outside the package.
 
-**To generate mock files of the service interface, use the following commands:**
+**To generate mock files of the database interface, use the following commands:**
 
 1. Install mockgen.
     ```
@@ -36,13 +36,13 @@ To write itnegration tests, you would typically want to mock this layer's interf
     mockgen -destination=mock.go -source=db.go -package=db
     ```
 
-This will generate the file `mock.go` which will contains your mock service. You can import it in your tests with:
+This will generate the file `mock.go` which will contain your mock database. You can import it in your tests with:
 
 ```
 func TestFoo(t *testing.T) {
   ctrl := gomock.NewController(t)
 
-  m := NewMockService(ctrl)
+  m := NewMockDatabase(ctrl)
 
   // Asserts that the first and only call to Bar() is passed 99.
   // Anything else will fail.
