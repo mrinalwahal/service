@@ -29,7 +29,7 @@ To write itnegration tests, you would typically want to mock this layer's interf
     mockgen -destination=mock.go -source=service.go -package=service
     ```
 
-This will generate the file `mock.go` which will contains your mock service. You can import it in your tests with:
+This will generate the file `mock.go` which will contain your mock service. You can import it in your tests with:
 
 ```
 func TestFoo(t *testing.T) {
