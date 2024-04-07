@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 
-	"github.com/grafana/loki-client-go/loki"
 	"github.com/joho/godotenv"
-	"github.com/mrinalwahal/service/server"
-	slogloki "github.com/samber/slog-loki/v3"
+	"github.com/mrinalwahal/service/pkg/middleware"
+	"github.com/mrinalwahal/service/router/http/router"
 	"gorm.io/driver/postgres"
 )
 
@@ -21,12 +21,6 @@ func main() {
 		log.Println("Error loading .env.development file")
 	}
 
-	//	Setup the loki client to use loki as log sink.
-	config, _ := loki.NewDefaultConfig(fmt.Sprintf("%s/loki/api/v1/push", os.Getenv("LOKI_HOST")))
-	//	config.TenantID = "xyz"
-	client, _ := loki.New(config)
-	defer client.Stop()
-
 	//	Setup the logger.
 	level := slog.LevelInfo
 	DEBUG, err := strconv.ParseBool(os.Getenv("DEBUG"))
@@ -36,20 +30,42 @@ func main() {
 	if DEBUG {
 		level = slog.LevelDebug
 	}
-
-	logger := slog.New(slogloki.Option{Level: level, Client: client}.NewLokiHandler())
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		// AddSource: true,
+		Level: level,
+	}))
 	logger = logger.
-		With("service", "todo").
+		With("service", "record").
 		With("environment", os.Getenv("ENV"))
-	//With("release", "v1.0.0")
 
-	//	Initialize the server.
-	s := server.NewHTTPServer(&server.NewHTTPServerConfig{
-		Port:      "8080",
+	//	Initialize the router.
+	router := router.NewHTTPRouter(&router.HTTPRouterConfig{
 		Dialector: postgres.Open("host=127.0.0.1 user=postgres password=postgres dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Kolkata"),
 		Logger:    logger,
 	})
 
-	//	Start the server.
-	s.Serve()
+	// Prepare the middleware chain.
+	// The order of the middlewares is important.
+	// Recommended order: Request ID -> RateLimit -> CORS -> Logging -> Recover -> Auth -> Cache -> Compression
+	chain := middleware.Chain(
+		middleware.RequestID,
+		// TODO: middleware.RateLimit,
+		middleware.CORS,
+		middleware.Recover(logger),
+		middleware.Logging(logger),
+	)
+
+	// Prepare the base router.
+	baseRouter := http.NewServeMux()
+	baseRouter.Handle("/record/", http.StripPrefix("/record", router))
+
+	//	Configure and start the server.
+	server := http.Server{
+		Addr:     ":8080",
+		Handler:  chain(baseRouter),
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+	}
+
+	fmt.Println("Server is running on port 8080")
+	server.ListenAndServe()
 }

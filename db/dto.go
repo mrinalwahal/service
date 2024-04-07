@@ -2,13 +2,13 @@ package db
 
 type CreateOptions struct {
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string
 }
 
 type ListOptions struct {
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string
 	//	Skip for pagination.
 	Skip int
@@ -22,6 +22,6 @@ type ListOptions struct {
 
 type UpdateOptions struct {
 
-	//	Title of the todo.
+	//	Title of the record.
 	Title string
 }

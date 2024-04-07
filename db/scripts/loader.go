@@ -12,7 +12,7 @@ import (
 
 // Define the models to generate migrations for.
 var models = []any{
-	&db.Todo{},
+	&db.Record{},
 }
 
 func main() {
