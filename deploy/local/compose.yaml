@@ -6,6 +6,10 @@ networks:
   
 services:
 
+  #
+  # Storage services
+  #
+
   postgres:
     image: postgres:latest
     ports:
@@ -15,6 +19,24 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - data:/var/lib/postgresql
+    networks:
+      - default
+
+  #
+  # Authorization services
+  #
+
+  permify:
+    image: ghcr.io/permify/permify:latest
+    ports:
+      - 3476:3476 # used by HTTP service
+      #- 3478:3478 # used by GRPC service
+    volumes:
+      - ./permify/config.yaml:/etc/agent/config.river
+    command: serve
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/permify
+      - PORT=/migrations
     networks:
       - default
 
@@ -39,7 +61,7 @@ services:
     ports:
       - "12345:12345"
     volumes:
-      - ./config/agent.river:/etc/agent/config.river
+      - ./agent/config.river:/etc/agent/config.river
     environment:
       - AGENT_MODE=flow
     command: run --server.http.listen-addr=0.0.0.0:12345 /etc/agent/config.river
