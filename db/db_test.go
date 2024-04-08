@@ -87,11 +87,12 @@ func Test_Database_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
-					Title: "Test Title",
+					Title:  "Test Title",
+					UserID: uuid.New(),
 				},
 			},
 			validation: func(r *Record) error {
-				if r.Title != "Test Title" {
+				if r.Title != "Test Title" || len(r.UserID.String()) == 0 {
 					return fmt.Errorf("expected record title to be 'Test Title', got '%s'", r.Title)
 				}
 				return nil
@@ -103,7 +104,8 @@ func Test_Database_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
-					Title: "",
+					Title:  "",
+					UserID: uuid.New(),
 				},
 			},
 			wantErr: true,
@@ -113,7 +115,8 @@ func Test_Database_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
-					Title: "Test Title",
+					Title:  "Test Title",
+					UserID: uuid.New(),
 				},
 			},
 			validation: func(r *Record) error {
@@ -152,7 +155,8 @@ func Test_Database_List(t *testing.T) {
 	// Seed the database with some records.
 	for i := 0; i < 2; i++ {
 		_, err := db.Create(context.Background(), &CreateOptions{
-			Title: fmt.Sprintf("Record %d", i),
+			Title:  fmt.Sprintf("Record %d", i),
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to seed the database: %v", err)
@@ -223,7 +227,8 @@ func Test_Database_Get(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	})
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
@@ -293,7 +298,8 @@ func Test_Database_Update(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	})
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
@@ -367,7 +373,8 @@ func Test_Database_Delete(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	})
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)

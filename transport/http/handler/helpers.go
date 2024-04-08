@@ -45,7 +45,7 @@ func (r response) MarshalJSON() ([]byte, error) {
 
 func handleErr(w http.ResponseWriter, err error) {
 
-	// Run type assertion on the response to check if it is of type `Response`.
+	// Run type assertion on the response to check if it is of type `response`.
 	// If it is, then write the response as JSON.
 	// If it is not, then wrap the error in a new `Response` structure with defaults.
 	if response, ok := err.(*response); ok {
@@ -68,7 +68,9 @@ func write(w http.ResponseWriter, status int, response any) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
+// decode decodes the request body into the supplied type.
 func decode[T any](r *http.Request) (T, error) {
+	defer r.Body.Close()
 	var v T
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 		return v, fmt.Errorf("decode json: %w", err)

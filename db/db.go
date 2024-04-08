@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// DB interface contains the signature of the database layer.
+// DB interface declares the signature of the database layer.
 type DB interface {
 	Create(context.Context, *CreateOptions) (*Record, error)
 	Get(context.Context, uuid.UUID) (*Record, error)
@@ -39,12 +39,23 @@ type database struct {
 	conn *gorm.DB
 }
 
+// Create operation creates a new record in the database.
 func (db *database) Create(ctx context.Context, options *CreateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
 
+	//
+	// This operation has no Row Level Security (RLS) check.
+	//
+
+	// Prepare the payload we have to send to the database transaction.
 	var payload Record
 	payload.Title = options.Title
+	payload.UserID = options.UserID
 
+	// Execute the transaction.
 	result := txn.Create(&payload)
 	if result.Error != nil {
 		return nil, result.Error
@@ -67,13 +78,18 @@ func (db *database) List(ctx context.Context, options *ListOptions) ([]*Record, 
 	if options.OrderBy != "" {
 		query = query.Order(options.OrderBy + " " + options.OrderDirection)
 	}
-
-	//	Add conditions to the query.
-	where := Record{
-		Title: options.Title,
+	if options.Title != "" {
+		query = query.Where(&Record{
+			Title: options.Title,
+		})
+	}
+	if options.UserID != uuid.Nil {
+		query = query.Where(&Record{
+			UserID: options.UserID,
+		})
 	}
 
-	if result := query.Where(&where).Find(&payload); result.Error != nil {
+	if result := query.Find(&payload); result.Error != nil {
 		return nil, result.Error
 	}
 	return payload, nil
@@ -93,6 +109,9 @@ func (db *database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
 
 func (db *database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Record, error) {
 	txn := db.conn.WithContext(ctx)
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
 
 	var payload Record
 	payload.ID = id

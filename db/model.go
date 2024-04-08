@@ -61,5 +61,5 @@ type Record struct {
 	//	Example: "550e8400-e29b-41d4-a716-446655440000"
 	//
 	//	It is a required field.
-	//UserID uuid.UUID `json:"user_id" gorm:"not null"`
+	UserID uuid.UUID `json:"user_id" gorm:"not null;type:uuid"`
 }

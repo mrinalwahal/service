@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Handler is the interface that declares the signature of an HTTP request handler.
+// Handler interface declares the signature of an HTTP request handler.
 type Handler interface {
 
 	// ServeHTTP is the method that consumes the incoming HTTP request.
