@@ -13,7 +13,7 @@ import (
 type CreateOptions struct {
 
 	//	Title of the record.
-	Title string `json:"title" validate:"required"`
+	Title string `json:"title"`
 }
 
 // Create handler create a new record.
@@ -86,7 +86,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.Validate(ctx); err != nil {
+	if err := h.validate(ctx); err != nil {
 		handleErr(w, err)
 		return
 	}
@@ -97,9 +97,9 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Validate function ascertains that the requester is authorized to perform this request.
+// validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *CreateHandler) Validate(ctx context.Context) error {
+func (h *CreateHandler) validate(ctx context.Context) error {
 	return nil
 }
 
