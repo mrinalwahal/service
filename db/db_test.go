@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -27,7 +28,7 @@ func initialize(t *testing.T) *environment {
 	}
 
 	// Migrate the schema.
-	if err := conn.AutoMigrate(&Record{}); err != nil {
+	if err := conn.AutoMigrate(&model.Record{}); err != nil {
 		t.Fatalf("failed to migrate the schema: %v", err)
 	}
 
@@ -59,87 +60,57 @@ func Test_Database_Create(t *testing.T) {
 		conn: environment.conn,
 	}
 
-	type args struct {
-		ctx     context.Context
-		options *CreateOptions
-	}
-	tests := []struct {
+	t.Run("create record", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		options := &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
+		record, err := db.Create(context.Background(), options)
+		if err != nil {
+			t.Fatalf("failed to create a record: %v", err)
+		}
 
-		// The validation function that will be used to validate the output.
-		validation func(*Record) error
+		if record.ID == uuid.Nil {
+			t.Fatalf("expected record ID to be generated automatically, got empty UUID")
+		}
 
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "create a record",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title:  "Test Title",
-					UserID: uuid.New(),
-				},
-			},
-			validation: func(r *Record) error {
-				if r.Title != "Test Title" || len(r.UserID.String()) == 0 {
-					return fmt.Errorf("expected record title to be 'Test Title', got '%s'", r.Title)
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty title",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title:  "",
-					UserID: uuid.New(),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "generate UUID of a new record automatically",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title:  "Test Title",
-					UserID: uuid.New(),
-				},
-			},
-			validation: func(r *Record) error {
-				if len(r.ID.String()) == 0 {
-					return fmt.Errorf("expected record ID to be generated automatically, got empty UUID")
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := db.Create(tt.args.ctx, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("database.Create() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("database.Create() = %v, validation produced = %v", got, tt.validation(got))
-			}
-		})
-	}
+		if record.Title != options.Title {
+			t.Fatalf("expected record title to be 'Test Record', got '%s'", record.Title)
+		}
+	})
+
+	t.Run("empty title", func(t *testing.T) {
+
+		options := &CreateOptions{
+			Title:  "",
+			UserID: uuid.New(),
+		}
+
+		_, err := db.Create(context.Background(), options)
+		if err == nil {
+			t.Fatalf("expected an error, got nil")
+		}
+	})
+
+	t.Run("generate UUID of a new record automatically", func(t *testing.T) {
+
+		options := &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		}
+
+		record, err := db.Create(context.Background(), options)
+		if err != nil {
+			t.Fatalf("failed to create a record: %v", err)
+		}
+
+		// Check if the response contains a valid UUID and correct title.
+		if record.ID == uuid.Nil {
+			t.Fatalf("expected record ID to be generated automatically, got empty UUID")
+		}
+	})
 }
 
 func Test_Database_List(t *testing.T) {
@@ -155,7 +126,7 @@ func Test_Database_List(t *testing.T) {
 	// Seed the database with some records.
 	for i := 0; i < 2; i++ {
 		_, err := db.Create(context.Background(), &CreateOptions{
-			Title:  fmt.Sprintf("Record %d", i),
+			Title:  fmt.Sprintf("model.Record %d", i),
 			UserID: uuid.New(),
 		})
 		if err != nil {
@@ -177,11 +148,11 @@ func Test_Database_List(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The validation function that will be used to validate the output.
-		validation func([]*Record) error
+		validation func([]*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -192,7 +163,7 @@ func Test_Database_List(t *testing.T) {
 				ctx:     context.Background(),
 				options: &ListOptions{},
 			},
-			validation: func(records []*Record) error {
+			validation: func(records []*model.Record) error {
 				if len(records) < 1 {
 					return fmt.Errorf("expected at least 1 seed record, got %d", len(records))
 				}
@@ -227,7 +198,7 @@ func Test_Database_Get(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title:  "Test Record",
+		Title:  "Test model.Record",
 		UserID: uuid.New(),
 	})
 	if err != nil {
@@ -248,11 +219,11 @@ func Test_Database_Get(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The validation function that will be used to validate the output.
-		validation func(*Record) error
+		validation func(*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -263,7 +234,7 @@ func Test_Database_Get(t *testing.T) {
 				ctx: context.Background(),
 				ID:  seed.ID,
 			},
-			validation: func(r *Record) error {
+			validation: func(r *model.Record) error {
 				if r.ID != seed.ID {
 					return fmt.Errorf("expected retrieved record to equal seed, got = %v", r)
 				}
@@ -298,7 +269,7 @@ func Test_Database_Update(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title:  "Test Record",
+		Title:  "Test model.Record",
 		UserID: uuid.New(),
 	})
 	if err != nil {
@@ -320,11 +291,11 @@ func Test_Database_Update(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The validation function that will be used to validate the output.
-		validation func(*Record) error
+		validation func(*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -338,7 +309,7 @@ func Test_Database_Update(t *testing.T) {
 					Title: "Updated Title",
 				},
 			},
-			validation: func(r *Record) error {
+			validation: func(r *model.Record) error {
 				if r.Title != "Updated Title" {
 					return fmt.Errorf("expected updated record title to be 'Updated Title', got '%s'", r.Title)
 				}
@@ -373,7 +344,7 @@ func Test_Database_Delete(t *testing.T) {
 
 	// Seed the database with sample records.
 	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title:  "Test Record",
+		Title:  "Test model.Record",
 		UserID: uuid.New(),
 	})
 	if err != nil {
@@ -394,7 +365,7 @@ func Test_Database_Delete(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// Whether we expect an error or not.

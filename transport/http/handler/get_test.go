@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/model"
 	"go.uber.org/mock/gomock"
 )
 
@@ -61,11 +61,11 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 					return req
 				}(),
 			},
-			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&db.Record{
-				Base: db.Base{
+			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
+				Base: model.Base{
 					ID: recordID,
 				},
-				Title: "Record 1",
+				Title: "model.Record 1",
 			}, nil),
 			validation: func(res *response) error {
 				if res.Data == nil {

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/model"
 	"go.uber.org/mock/gomock"
 )
 
@@ -54,9 +54,9 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", nil),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*db.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "Record 1",
+					Title: "model.Record 1",
 				},
 			}, nil),
 			validation: func(r *response) error {
@@ -77,9 +77,9 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*db.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "Record 1",
+					Title: "model.Record 1",
 				},
 			}, nil),
 			validation: func(r *response) error {
@@ -100,12 +100,12 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*db.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "Record 1",
+					Title: "model.Record 1",
 				},
 				{
-					Title: "Record 2",
+					Title: "model.Record 2",
 				},
 			}, nil),
 			validation: func(r *response) error {

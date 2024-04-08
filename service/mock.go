@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
-	db "github.com/mrinalwahal/service/db"
+	model "github.com/mrinalwahal/service/model"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +42,10 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockService) Create(arg0 context.Context, arg1 *CreateOptions) (*db.Record, error) {
+func (m *MockService) Create(arg0 context.Context, arg1 *CreateOptions) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
-	ret0, _ := ret[0].(*db.Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -71,10 +71,10 @@ func (mr *MockServiceMockRecorder) Delete(arg0, arg1 any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockService) Get(arg0 context.Context, arg1 uuid.UUID) (*db.Record, error) {
+func (m *MockService) Get(arg0 context.Context, arg1 uuid.UUID) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(*db.Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,10 +86,10 @@ func (mr *MockServiceMockRecorder) Get(arg0, arg1 any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockService) List(arg0 context.Context, arg1 *ListOptions) ([]*db.Record, error) {
+func (m *MockService) List(arg0 context.Context, arg1 *ListOptions) ([]*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1)
-	ret0, _ := ret[0].([]*db.Record)
+	ret0, _ := ret[0].([]*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -101,10 +101,10 @@ func (mr *MockServiceMockRecorder) List(arg0, arg1 any) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockService) Update(arg0 context.Context, arg1 uuid.UUID, arg2 *UpdateOptions) (*db.Record, error) {
+func (m *MockService) Update(arg0 context.Context, arg1 uuid.UUID, arg2 *UpdateOptions) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*db.Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

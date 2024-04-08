@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/model"
 	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
@@ -58,14 +59,14 @@ func Test_Service_Create(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The expectation that we will set on the mock database layer.
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func(*db.Record) error
+		validation func(*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -75,15 +76,15 @@ func Test_Service_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
-					Title: "Test Record",
+					Title: "Test model.Record",
 				},
 			},
-			expectation: environment.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&db.Record{
-				Title: "Test Record",
+			expectation: environment.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
+				Title: "Test model.Record",
 			}, nil),
-			validation: func(r *db.Record) error {
-				if r.Title != "Test Record" {
-					return fmt.Errorf("expected record title to be 'Test Record', got '%s'", r.Title)
+			validation: func(r *model.Record) error {
+				if r.Title != "Test model.Record" {
+					return fmt.Errorf("expected record title to be 'Test model.Record', got '%s'", r.Title)
 				}
 				return nil
 			},
@@ -105,16 +106,16 @@ func Test_Service_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				options: &CreateOptions{
-					Title: "Test Record",
+					Title: "Test model.Record",
 				},
 			},
-			expectation: environment.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&db.Record{
-				Base: db.Base{
+			expectation: environment.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
+				Base: model.Base{
 					ID: uuid.New(),
 				},
-				Title: "Test Record",
+				Title: "Test model.Record",
 			}, nil),
-			validation: func(r *db.Record) error {
+			validation: func(r *model.Record) error {
 				if len(r.ID.String()) == 0 {
 					return fmt.Errorf("expected record ID to be generated automatically, got empty UUID")
 				}
@@ -166,14 +167,14 @@ func Test_Service_List(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The expectation that we will set on the mock database layer.
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func([]*db.Record) error
+		validation func([]*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -184,15 +185,15 @@ func Test_Service_List(t *testing.T) {
 				ctx:     context.Background(),
 				options: &ListOptions{},
 			},
-			expectation: environment.db.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*db.Record{
+			expectation: environment.db.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "Record 1",
+					Title: "model.Record 1",
 				},
 				{
-					Title: "Record 2",
+					Title: "model.Record 2",
 				},
 			}, nil),
-			validation: func(records []*db.Record) error {
+			validation: func(records []*model.Record) error {
 				if len(records) < 1 {
 					return fmt.Errorf("expected at least 1 seed record, got %d", len(records))
 				}
@@ -247,14 +248,14 @@ func Test_Service_Get(t *testing.T) {
 
 		// The arguments that we will pass to the function.
 		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
+		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
 		args args
 
 		// The expectation that we will set on the mock database layer.
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func(*db.Record) error
+		validation func(*model.Record) error
 
 		// Whether we expect an error or not.
 		wantErr bool
@@ -265,13 +266,13 @@ func Test_Service_Get(t *testing.T) {
 				ctx: context.Background(),
 				ID:  id,
 			},
-			expectation: environment.db.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&db.Record{
-				Base: db.Base{
+			expectation: environment.db.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
+				Base: model.Base{
 					ID: id,
 				},
-				Title: "Test Record",
+				Title: "Test model.Record",
 			}, nil),
-			validation: func(record *db.Record) error {
+			validation: func(record *model.Record) error {
 				if record.ID != id {
 					return fmt.Errorf("expected retrieved record to equal seed, got = %v", record.ID)
 				}

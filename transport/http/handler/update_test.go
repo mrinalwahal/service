@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/service"
 	"go.uber.org/mock/gomock"
 )
@@ -65,7 +65,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}).Return(&db.Record{
+			}).Return(&model.Record{
 				Title: "Updated Title",
 			}, nil),
 			wantStatus: http.StatusOK,
@@ -83,7 +83,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}).Return(&db.Record{
+			}).Return(&model.Record{
 				Title: "Wrong Title",
 			}, nil),
 			validation: func(r *response) error {

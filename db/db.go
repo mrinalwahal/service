@@ -1,18 +1,20 @@
+//go:generate mockgen -destination=mock.go -source=db.go -package=db
 package db
 
 import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/model"
 	"gorm.io/gorm"
 )
 
 // DB interface declares the signature of the database layer.
 type DB interface {
-	Create(context.Context, *CreateOptions) (*Record, error)
-	Get(context.Context, uuid.UUID) (*Record, error)
-	List(context.Context, *ListOptions) ([]*Record, error)
-	Update(context.Context, uuid.UUID, *UpdateOptions) (*Record, error)
+	Create(context.Context, *CreateOptions) (*model.Record, error)
+	Get(context.Context, uuid.UUID) (*model.Record, error)
+	List(context.Context, *ListOptions) ([]*model.Record, error)
+	Update(context.Context, uuid.UUID, *UpdateOptions) (*model.Record, error)
 	Delete(context.Context, uuid.UUID) error
 }
 
@@ -40,7 +42,7 @@ type database struct {
 }
 
 // Create operation creates a new record in the database.
-func (db *database) Create(ctx context.Context, options *CreateOptions) (*Record, error) {
+func (db *database) Create(ctx context.Context, options *CreateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 	if err := options.validate(); err != nil {
 		return nil, err
@@ -51,7 +53,7 @@ func (db *database) Create(ctx context.Context, options *CreateOptions) (*Record
 	//
 
 	// Prepare the payload we have to send to the database transaction.
-	var payload Record
+	var payload model.Record
 	payload.Title = options.Title
 	payload.UserID = options.UserID
 
@@ -63,10 +65,10 @@ func (db *database) Create(ctx context.Context, options *CreateOptions) (*Record
 	return &payload, nil
 }
 
-func (db *database) List(ctx context.Context, options *ListOptions) ([]*Record, error) {
+func (db *database) List(ctx context.Context, options *ListOptions) ([]*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload []*Record
+	var payload []*model.Record
 
 	query := txn
 	if options.Limit > 0 {
@@ -79,12 +81,12 @@ func (db *database) List(ctx context.Context, options *ListOptions) ([]*Record, 
 		query = query.Order(options.OrderBy + " " + options.OrderDirection)
 	}
 	if options.Title != "" {
-		query = query.Where(&Record{
+		query = query.Where(&model.Record{
 			Title: options.Title,
 		})
 	}
 	if options.UserID != uuid.Nil {
-		query = query.Where(&Record{
+		query = query.Where(&model.Record{
 			UserID: options.UserID,
 		})
 	}
@@ -95,10 +97,10 @@ func (db *database) List(ctx context.Context, options *ListOptions) ([]*Record, 
 	return payload, nil
 }
 
-func (db *database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
+func (db *database) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Record
+	var payload model.Record
 	payload.ID = ID
 	result := txn.First(&payload)
 	if result.Error != nil {
@@ -107,13 +109,13 @@ func (db *database) Get(ctx context.Context, ID uuid.UUID) (*Record, error) {
 	return &payload, nil
 }
 
-func (db *database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*Record, error) {
+func (db *database) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
 
-	var payload Record
+	var payload model.Record
 	payload.ID = id
 	if result := txn.Model(&payload).Updates(options); result.Error != nil {
 		return nil, result.Error
@@ -124,7 +126,7 @@ func (db *database) Update(ctx context.Context, id uuid.UUID, options *UpdateOpt
 func (db *database) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 
-	var payload Record
+	var payload model.Record
 	payload.ID = ID
 	result := txn.Delete(&payload)
 	return result.Error
