@@ -98,7 +98,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 			name: "return all records while requesting only 1 record",
 			args: args{
 				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"limit":1}`)),
+				r: httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
 			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*db.Record{
 				{

@@ -6,21 +6,16 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
 )
 
 // Get handler gets the record.
 type GetHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
-
-	// The UUID of the record to get.
-	id uuid.UUID
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -31,11 +26,10 @@ type GetHandler struct {
 
 type GetHandlerConfig struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB db.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -47,8 +41,8 @@ type GetHandlerConfig struct {
 // NewGetHandler gets a new instance of `GetHandler`.
 func NewGetHandler(config *GetHandlerConfig) Handler {
 	handler := GetHandler{
-		db:  config.DB,
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -71,43 +65,36 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	h.id = id
 
 	// Load the context.
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.Validate(ctx); err != nil {
+	if err := h.validate(ctx, id); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.Process(ctx); err != nil {
+	if err := h.process(ctx, id); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// Validate function ascertains that the requester is authorized to perform this request.
+// validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *GetHandler) Validate(ctx context.Context) error {
+func (h *GetHandler) validate(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-// Process applies the fundamental business logic to complete required operation.
-func (h *GetHandler) Process(ctx context.Context) error {
-
-	// Get the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+// process applies the fundamental business logic to complete required operation.
+func (h *GetHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	record, err := svc.Get(ctx, h.id)
+	record, err := h.service.Get(ctx, ID)
 	if err != nil {
 		return &response{
-			Status:  http.StatusInternalServerError,
+			Status:  http.StatusBadRequest,
 			Message: "Failed to get the record.",
 			Err:     err,
 		}
