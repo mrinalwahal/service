@@ -1,60 +1,94 @@
 package handler
 
 import (
+	"bytes"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/service"
 	"go.uber.org/mock/gomock"
 )
 
-type test_environment struct {
+// Temporary environment that contains all the configuration required by our tests.
+type environment struct {
 
-	// Mock database layer.
-	db db.DB
+	// Mock service layer.
+	service *service.MockService
 
-	// Logger instance.
-	log *slog.Logger
+	// Test logger.
+	logger *slog.Logger
 }
 
-func initialize(t *testing.T) *test_environment {
+// Setup the test environment.
+func initialize(t *testing.T) *environment {
 
-	// Get the mock database layer.
-	db := db.NewMockDB(gomock.NewController(t))
-	return &test_environment{
-		db:  db,
-		log: slog.Default(),
+	// Get the mock service layer.
+	service := service.NewMockService(gomock.NewController(t))
+	return &environment{
+		service: service,
+		logger:  slog.Default(),
 	}
 }
 
 func TestCreateHandler_ServeHTTP(t *testing.T) {
 
-	// Initialize the environment.
-	type fields struct {
-		db      db.DB
-		options *CreateOptions
-		log     *slog.Logger
-	}
+	// Setup the test environment.
+	environment := initialize(t)
+
 	type args struct {
 		w http.ResponseWriter
 		r *http.Request
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
+
+		// The name of our test.
+		// This will be used to identify the test in the output.
+		//
+		// Example: "create record"
+		name string
+
+		// The arguments that we will pass to the function.
+		//
+		// Example: `w: httptest.NewRecorder(), r: httptest.NewRequest(http.MethodPost, "/", nil)`
+		args args
+
+		// The expectation that we will set on the mock database layer.
+		expectation *gomock.Call
+
+		// The status code we expect in response.
+		//
+		// Example: http.StatusOK
+		want int
 	}{
-		// TODO: Add test cases.
+		{
+			name: "create record",
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"title":"test"}`)),
+			},
+			expectation: environment.service.EXPECT().Create(gomock.Any(), gomock.Any()),
+			want:        http.StatusCreated,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &CreateHandler{
-				db:      tt.fields.db,
-				options: tt.fields.options,
-				log:     tt.fields.log,
+				service: environment.service,
+				log:     environment.logger,
 			}
+
+			// Set the expectation.
+			tt.expectation.Times(1)
+
 			h.ServeHTTP(tt.args.w, tt.args.r)
+
+			// Validate the status code.
+			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.want {
+				t.Log(tt.args.w.(*httptest.ResponseRecorder).Body.String())
+				t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, tt.want)
+			}
 		})
 	}
 }

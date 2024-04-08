@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/pkg/middleware"
+	"github.com/mrinalwahal/service/service"
 	"github.com/mrinalwahal/service/transport/http/router"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -93,10 +94,16 @@ func main() {
 	// 	}, // user defined metrics
 	// }))
 
-	//	Initialize the router.
-	router := router.NewHTTPRouter(&router.HTTPRouterConfig{
+	// Get the service layer.
+	service := service.NewService(&service.Config{
 		DB:     db,
 		Logger: logger,
+	})
+
+	//	Initialize the router.
+	router := router.NewHTTPRouter(&router.HTTPRouterConfig{
+		Service: service,
+		Logger:  logger,
 	})
 
 	// Prepare the middleware chain.

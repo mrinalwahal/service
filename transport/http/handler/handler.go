@@ -27,7 +27,7 @@ type Handler interface {
 	// - Check if the requester is authorized to make the request or not. You can implement access control over here.
 	// - Check if the request body is valid or not.
 	// - Check if the request headers are valid or not.
-	// Validate(context.Context) error
+	// validate(context.Context, *CreateOptions) error
 
 	// Process is the method that processes the incoming HTTP request to it's completion.
 	// This method applies the main business logic of the handler.

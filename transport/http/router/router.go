@@ -4,18 +4,17 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/mrinalwahal/service/db"
+	"github.com/mrinalwahal/service/service"
 	"github.com/mrinalwahal/service/transport/http/handler"
 )
 
 type HTTPRouter struct {
 	*http.ServeMux
 
-	// Database layer connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -32,11 +31,10 @@ type HTTPRouter struct {
 
 type HTTPRouterConfig struct {
 
-	// Database layer connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB db.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -50,7 +48,7 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 
 	router := HTTPRouter{
 		ServeMux: http.NewServeMux(),
-		db:       config.DB,
+		service:  config.Service,
 		log:      config.Logger,
 	}
 
@@ -68,29 +66,29 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 	})
 
 	router.Handle("POST /", handler.NewCreateHandler(&handler.CreateHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
+		Service: config.Service,
+		Logger:  router.log,
 	}))
 
-	router.Handle("GET /", handler.NewListHandler(&handler.ListHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
+	// router.Handle("GET /", handler.NewListHandler(&handler.ListHandlerConfig{
+	// 	DB:     router.db,
+	// 	Logger: router.log,
+	// }))
 
-	router.Handle("GET /{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
+	// router.Handle("GET /{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
+	// 	DB:     router.db,
+	// 	Logger: router.log,
+	// }))
 
-	router.Handle("PATCH /{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
+	// router.Handle("PATCH /{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
+	// 	DB:     router.db,
+	// 	Logger: router.log,
+	// }))
 
-	router.Handle("DELETE /{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
+	// router.Handle("DELETE /{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
+	// 	DB:     router.db,
+	// 	Logger: router.log,
+	// }))
 
 	return &router
 }
