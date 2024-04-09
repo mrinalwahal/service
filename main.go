@@ -111,6 +111,8 @@ func main() {
 	// Recommended order: Request ID -> RateLimit -> CORS -> Logging -> Recover -> Auth -> Cache -> Compression
 	chain := middleware.Chain(
 		middleware.RequestID,
+		middleware.TraceID,
+		middleware.CorrelationID,
 		// TODO: middleware.RateLimit,
 		middleware.CORS,
 		middleware.Recover(logger.With("server", "http")),

@@ -29,15 +29,25 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 			//
 
 			attributes := []slog.Attr{
+				{Key: "timestamp", Value: slog.StringValue(start.String())},
 				{Key: "request_id", Value: slog.StringValue(r.Context().Value(XRequestID).(string))},
 				{Key: "status", Value: slog.IntValue(writer.Status())},
-				{Key: "duration", Value: slog.DurationValue(time.Since(start))},
+				{Key: "latency", Value: slog.DurationValue(time.Since(start))},
 				{Key: "hostname", Value: slog.StringValue(r.Host)},
 				{Key: "method", Value: slog.StringValue(r.Method)},
 				{Key: "path", Value: slog.StringValue(r.URL.Path)},
 			}
 
-			log.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("incoming %s request to %s", r.Method, r.URL.Path), attributes...)
+			// If the response status code is 5xx, log the error message.
+			if writer.Status() >= 500 {
+
+				// Parse the response data.
+				// attributes = append(attributes, slog.Attr{Key: "error", Value: slog.StringValue(writer.Error())})
+
+			} else {
+				log.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("incoming %s request to %s", r.Method, r.URL.Path), attributes...)
+			}
+
 		})
 	}
 }
