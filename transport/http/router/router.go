@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/mrinalwahal/service/service"
-	"github.com/mrinalwahal/service/transport/http/handler"
+	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 )
 
 type HTTPRouter struct {
@@ -65,30 +65,37 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		w.Write([]byte("OK"))
 	})
 
-	router.Handle("POST /v1", handler.NewCreateHandler(&handler.CreateHandlerConfig{
-		Service: config.Service,
-		Logger:  router.log,
-	}))
-
-	router.Handle("GET /v1", handler.NewListHandler(&handler.ListHandlerConfig{
-		Service: config.Service,
-		Logger:  router.log,
-	}))
-
-	router.Handle("GET /v1/{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
-		Service: config.Service,
-		Logger:  router.log,
-	}))
-
-	router.Handle("PATCH /v1/{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
-		Service: config.Service,
-		Logger:  router.log,
-	}))
-
-	router.Handle("DELETE /v1/{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
-		Service: config.Service,
-		Logger:  router.log,
-	}))
+	// Register the v1 routes.
+	router.RegisterV1Routes()
 
 	return &router
+}
+
+// RegisterV1Routes registers /v1 routes.
+func (r *HTTPRouter) RegisterV1Routes() {
+
+	r.Handle("POST /v1", v1.NewCreateHandler(&v1.CreateHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("GET /v1", v1.NewListHandler(&v1.ListHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("GET /v1/{id}", v1.NewGetHandler(&v1.GetHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("PATCH /v1/{id}", v1.NewUpdateHandler(&v1.UpdateHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("DELETE /v1/{id}", v1.NewDeleteHandler(&v1.DeleteHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
 }

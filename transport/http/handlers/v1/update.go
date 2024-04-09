@@ -1,35 +1,23 @@
-package handler
+package v1
 
 import (
 	"context"
 	"log/slog"
 	"net/http"
 
-	"github.com/dyninc/qstring"
+	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/service"
 )
 
-// ListOptions represents the options for listing records.
-type ListOptions struct {
-
-	//	Number of records to skip.
-	Skip int `query:"skip" validate:"gte=0"`
-
-	//	Number of records to return.
-	Limit int `query:"limit" validate:"gte=0,lte=100"`
-
-	//	Order by field.
-	OrderBy string `query:"orderBy" validate:"oneof=created_at updated_at title"`
-
-	//	Order by direction.
-	OrderDirection string `query:"orderDirection" validate:"oneof=asc desc"`
+// UpdateOptions represents the options for updating a record.
+type UpdateOptions struct {
 
 	//	Title of the record.
-	Title string `query:"name"`
+	Title string `json:"title" validate:"required"`
 }
 
-// List handler lists the records.
-type ListHandler struct {
+// Update handler update a new record.
+type UpdateHandler struct {
 
 	// Service layer.
 	//
@@ -43,7 +31,7 @@ type ListHandler struct {
 	log *slog.Logger
 }
 
-type ListHandlerConfig struct {
+type UpdateHandlerConfig struct {
 
 	// Service layer.
 	//
@@ -57,9 +45,9 @@ type ListHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-// NewListHandler lists a new instance of `ListHandler`.
-func NewListHandler(config *ListHandlerConfig) Handler {
-	handler := ListHandler{
+// NewUpdateHandler updates a new instance of `UpdateHandler`.
+func NewUpdateHandler(config *UpdateHandlerConfig) Handler {
+	handler := UpdateHandler{
 		service: config.Service,
 		log:     config.Logger,
 	}
@@ -68,17 +56,24 @@ func NewListHandler(config *ListHandlerConfig) Handler {
 	if handler.log == nil {
 		handler.log = slog.Default()
 	}
-	handler.log = handler.log.With("handler", "list")
+	handler.log = handler.log.With("handler", "update")
 
 	return &handler
 }
 
 // ServeHTTP handles the incoming HTTP request.
-func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
-	var options ListOptions
-	err := qstring.Unmarshal(r.URL.Query(), &options)
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		write(w, http.StatusBadRequest, &Response{
+			Message: "Invalid ID.",
+		})
+		return
+	}
+
+	options, err := decode[UpdateOptions](r)
 	if err != nil {
 		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
@@ -91,41 +86,41 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx, &options); err != nil {
+	if err := h.validate(ctx, id, &options); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.process(ctx, &options); err != nil {
+	if err := h.process(ctx, id, &options); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// Validate function ascertains that the requester is authorized to perform this request.
+// validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *ListHandler) validate(ctx context.Context, options *ListOptions) error {
+func (h *UpdateHandler) validate(ctx context.Context, ID uuid.UUID, options *UpdateOptions) error {
 	return nil
 }
 
 // process applies the fundamental business logic to complete required operation.
-func (h *ListHandler) process(ctx context.Context, options *ListOptions) error {
+func (h *UpdateHandler) process(ctx context.Context, ID uuid.UUID, options *UpdateOptions) error {
 
 	// Call the service method that performs the required operation.
-	records, err := h.service.List(ctx, &service.ListOptions{
+	record, err := h.service.Update(ctx, ID, &service.UpdateOptions{
 		Title: options.Title,
 	})
 	if err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,
-			Message: "Failed to list the records.",
+			Message: "Failed to update the record.",
 			Err:     err,
 		}
 	}
 
 	return &Response{
 		Status:  http.StatusOK,
-		Message: "The records were retrieved successfully.",
-		Data:    records,
+		Message: "The record was updated successfully.",
+		Data:    record,
 	}
 }

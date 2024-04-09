@@ -1,4 +1,4 @@
-package handler
+package v1
 
 import (
 	"context"
@@ -9,13 +9,16 @@ import (
 	"github.com/mrinalwahal/service/service"
 )
 
-// Get handler gets the record.
-type GetHandler struct {
+// Delete handler deletes the record.
+type DeleteHandler struct {
 
 	// Service layer.
 	//
 	// This field is mandatory.
 	service service.Service
+
+	// The UUID of the record to delete.
+	id uuid.UUID
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -24,7 +27,7 @@ type GetHandler struct {
 	log *slog.Logger
 }
 
-type GetHandlerConfig struct {
+type DeleteHandlerConfig struct {
 
 	// Service layer.
 	//
@@ -38,9 +41,9 @@ type GetHandlerConfig struct {
 	Logger *slog.Logger
 }
 
-// NewGetHandler gets a new instance of `GetHandler`.
-func NewGetHandler(config *GetHandlerConfig) Handler {
-	handler := GetHandler{
+// NewDeleteHandler deletes a new instance of `DeleteHandler`.
+func NewDeleteHandler(config *DeleteHandlerConfig) Handler {
+	handler := DeleteHandler{
 		service: config.Service,
 		log:     config.Logger,
 	}
@@ -49,13 +52,13 @@ func NewGetHandler(config *GetHandlerConfig) Handler {
 	if handler.log == nil {
 		handler.log = slog.Default()
 	}
-	handler.log = handler.log.With("handler", "get")
+	handler.log = handler.log.With("handler", "delete")
 
 	return &handler
 }
 
 // ServeHTTP handles the incoming HTTP request.
-func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
@@ -65,6 +68,7 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	h.id = id
 
 	// Load the context.
 	ctx := r.Context()
@@ -81,28 +85,26 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *GetHandler) validate(ctx context.Context, ID uuid.UUID) error {
+func (h *DeleteHandler) validate(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-// process applies the fundamental business logic to complete required operation.
-func (h *GetHandler) process(ctx context.Context, ID uuid.UUID) error {
+// Process applies the fundamental business logic to complete required operation.
+func (h *DeleteHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	record, err := h.service.Get(ctx, ID)
-	if err != nil {
+	if err := h.service.Delete(ctx, ID); err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,
-			Message: "Failed to get the record.",
+			Message: "Failed to delete the record.",
 			Err:     err,
 		}
 	}
 
 	return &Response{
 		Status:  http.StatusOK,
-		Message: "The record was retrieved successfully.",
-		Data:    record,
+		Message: "The record was deleted successfully.",
 	}
 }

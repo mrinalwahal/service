@@ -13,7 +13,7 @@ import (
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/service"
-	"github.com/mrinalwahal/service/transport/http/handler"
+	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -131,7 +131,7 @@ func Test_Router(t *testing.T) {
 	t.Run("request to create record w/ valid body", func(t *testing.T) {
 
 		// Prepare a body with invalid JSON.
-		body, err := json.Marshal(handler.CreateOptions{
+		body, err := json.Marshal(v1.CreateOptions{
 			Title: "test",
 		})
 		if err != nil {
@@ -232,7 +232,7 @@ func Test_Router(t *testing.T) {
 		}
 
 		// Check that the returned data in the response is a JSON array.
-		var response handler.Response
+		var response v1.Response
 		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 			t.Fatalf("failed to unmarshal the response body: %v", err)
 		}
@@ -275,7 +275,7 @@ func Test_Router(t *testing.T) {
 		}
 
 		// Prepare the body.
-		body, err := json.Marshal(handler.UpdateOptions{
+		body, err := json.Marshal(v1.UpdateOptions{
 			Title: "updated",
 		})
 		if err != nil {
@@ -302,7 +302,7 @@ func Test_Router(t *testing.T) {
 		}
 
 		// Validate the title of the updated record.
-		var response handler.Response
+		var response v1.Response
 		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 			t.Fatalf("failed to unmarshal the response body: %v", err)
 		}
