@@ -56,6 +56,9 @@ func (s *service) Create(ctx context.Context, options *CreateOptions) (*model.Re
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "creating a new record",
 		slog.String("function", "create"),
 	)
+	if options == nil {
+		return nil, ErrInvalidArguments
+	}
 	return s.db.Create(ctx, &db.CreateOptions{
 		Title: options.Title,
 	})
@@ -65,6 +68,9 @@ func (s *service) List(ctx context.Context, options *ListOptions) ([]*model.Reco
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "listing all records",
 		slog.String("function", "list"),
 	)
+	if options == nil {
+		return nil, ErrInvalidArguments
+	}
 	return s.db.List(ctx, &db.ListOptions{
 		Title:          options.Title,
 		Skip:           options.Skip,
@@ -78,6 +84,9 @@ func (s *service) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) 
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "retrieving a record",
 		slog.String("function", "get"),
 	)
+	if ID == uuid.Nil {
+		return nil, ErrInvalidArguments
+	}
 	return s.db.Get(ctx, ID)
 }
 
@@ -85,6 +94,12 @@ func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptio
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "updating a record",
 		slog.String("function", "update"),
 	)
+	if ID == uuid.Nil {
+		return nil, ErrInvalidArguments
+	}
+	if options == nil {
+		return nil, ErrInvalidArguments
+	}
 	return s.db.Update(ctx, ID, &db.UpdateOptions{
 		Title: options.Title,
 	})
@@ -94,5 +109,8 @@ func (s *service) Delete(ctx context.Context, ID uuid.UUID) error {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "deleting a record",
 		slog.String("function", "delete"),
 	)
+	if ID == uuid.Nil {
+		return ErrInvalidArguments
+	}
 	return s.db.Delete(ctx, ID)
 }
