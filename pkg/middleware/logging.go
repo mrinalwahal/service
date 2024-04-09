@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/mrinalwahal/service/pkg/writer"
 )
 
 func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
@@ -18,8 +20,8 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 			// Like we do it in the `RequestID` middleware.
 			//
 
-			//writer := writer.Writer{ResponseWriter: w}
-			next.ServeHTTP(w, r)
+			writer := writer.NewWriter(w)
+			next.ServeHTTP(writer, r)
 
 			//
 			// If you want to run some code after the request is handled, you can do it here.
@@ -28,7 +30,7 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			attributes := []slog.Attr{
 				{Key: "request_id", Value: slog.StringValue(r.Context().Value(XRequestID).(string))},
-				// {Key: "status", Value: slog.IntValue(r.Status)},
+				{Key: "status", Value: slog.IntValue(writer.Status())},
 				{Key: "duration", Value: slog.DurationValue(time.Since(start))},
 				{Key: "hostname", Value: slog.StringValue(r.Host)},
 				{Key: "method", Value: slog.StringValue(r.Method)},

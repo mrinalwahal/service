@@ -113,13 +113,13 @@ func main() {
 		middleware.RequestID,
 		// TODO: middleware.RateLimit,
 		middleware.CORS,
-		middleware.Recover(logger),
-		middleware.Logging(logger),
+		middleware.Recover(logger.With("server", "http")),
+		middleware.Logging(logger.With("server", "http")),
 	)
 
 	// Prepare the base router.
 	baseRouter := http.NewServeMux()
-	baseRouter.Handle("/record/", http.StripPrefix("/record", router))
+	baseRouter.Handle("/records/", http.StripPrefix("/records", router))
 
 	//	Configure and start the server.
 	server := http.Server{

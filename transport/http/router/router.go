@@ -57,7 +57,7 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		router.log = slog.Default()
 	}
 
-	router.log = router.log.With("layer", "router")
+	// router.log = router.log.With("layer", "http")
 
 	// Register the default routes.
 	router.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -65,30 +65,30 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		w.Write([]byte("OK"))
 	})
 
-	router.Handle("POST /", handler.NewCreateHandler(&handler.CreateHandlerConfig{
+	router.Handle("POST /v1", handler.NewCreateHandler(&handler.CreateHandlerConfig{
 		Service: config.Service,
 		Logger:  router.log,
 	}))
 
-	// router.Handle("GET /", handler.NewListHandler(&handler.ListHandlerConfig{
-	// 	DB:     router.db,
-	// 	Logger: router.log,
-	// }))
+	router.Handle("GET /v1", handler.NewListHandler(&handler.ListHandlerConfig{
+		Service: config.Service,
+		Logger:  router.log,
+	}))
 
-	// router.Handle("GET /{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
-	// 	DB:     router.db,
-	// 	Logger: router.log,
-	// }))
+	router.Handle("GET /v1/{id}", handler.NewGetHandler(&handler.GetHandlerConfig{
+		Service: config.Service,
+		Logger:  router.log,
+	}))
 
-	// router.Handle("PATCH /{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
-	// 	DB:     router.db,
-	// 	Logger: router.log,
-	// }))
+	router.Handle("PATCH /v1/{id}", handler.NewUpdateHandler(&handler.UpdateHandlerConfig{
+		Service: config.Service,
+		Logger:  router.log,
+	}))
 
-	// router.Handle("DELETE /{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
-	// 	DB:     router.db,
-	// 	Logger: router.log,
-	// }))
+	router.Handle("DELETE /v1/{id}", handler.NewDeleteHandler(&handler.DeleteHandlerConfig{
+		Service: config.Service,
+		Logger:  router.log,
+	}))
 
 	return &router
 }

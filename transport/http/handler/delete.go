@@ -6,18 +6,16 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
 )
 
 // Delete handler deletes the record.
 type DeleteHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
+	service service.Service
 
 	// The UUID of the record to delete.
 	id uuid.UUID
@@ -31,11 +29,10 @@ type DeleteHandler struct {
 
 type DeleteHandlerConfig struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB db.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -47,8 +44,8 @@ type DeleteHandlerConfig struct {
 // NewDeleteHandler deletes a new instance of `DeleteHandler`.
 func NewDeleteHandler(config *DeleteHandlerConfig) Handler {
 	handler := DeleteHandler{
-		db:  config.DB,
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -77,36 +74,30 @@ func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.Validate(ctx); err != nil {
+	if err := h.validate(ctx, id); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.Process(ctx); err != nil {
+	if err := h.process(ctx, id); err != nil {
 		handleErr(w, err)
 	}
 }
 
 // Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *DeleteHandler) Validate(ctx context.Context) error {
+func (h *DeleteHandler) validate(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
 // Process applies the fundamental business logic to complete required operation.
-func (h *DeleteHandler) Process(ctx context.Context) error {
-
-	// Delete the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+func (h *DeleteHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	if err := svc.Delete(ctx, h.id); err != nil {
+	if err := h.service.Delete(ctx, ID); err != nil {
 		return &response{
-			Status:  http.StatusInternalServerError,
+			Status:  http.StatusBadRequest,
 			Message: "Failed to delete the record.",
 			Err:     err,
 		}
