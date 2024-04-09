@@ -67,7 +67,7 @@ func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 		})
 		return
@@ -75,7 +75,7 @@ func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	options, err := decode[UpdateOptions](r)
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
 		})
@@ -111,14 +111,14 @@ func (h *UpdateHandler) process(ctx context.Context, ID uuid.UUID, options *Upda
 		Title: options.Title,
 	})
 	if err != nil {
-		return &response{
+		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Failed to update the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The record was updated successfully.",
 		Data:    record,

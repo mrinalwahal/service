@@ -80,7 +80,7 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var options ListOptions
 	err := qstring.Unmarshal(r.URL.Query(), &options)
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
 		})
@@ -116,14 +116,14 @@ func (h *ListHandler) process(ctx context.Context, options *ListOptions) error {
 		Title: options.Title,
 	})
 	if err != nil {
-		return &response{
+		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Failed to list the records.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The records were retrieved successfully.",
 		Data:    records,

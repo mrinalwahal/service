@@ -41,7 +41,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func(*response) error
+		validation func(*Response) error
 
 		// The status code we expect in response.
 		//
@@ -67,7 +67,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 				},
 				Title: "model.Record 1",
 			}, nil),
-			validation: func(res *response) error {
+			validation: func(res *Response) error {
 				if res.Data == nil {
 					t.Log("Response:", res)
 					return fmt.Errorf("expected data to be non-nil")
@@ -90,7 +90,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 			h.ServeHTTP(tt.args.w, tt.args.r)
 
 			// Decode the body
-			var resp response
+			var resp Response
 			if err := json.Unmarshal(tt.args.w.(*httptest.ResponseRecorder).Body.Bytes(), &resp); err != nil {
 				t.Errorf("GetHandler.ServeHTTP() = %v", err)
 			}

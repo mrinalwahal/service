@@ -44,13 +44,9 @@ type database struct {
 // Create operation creates a new record in the database.
 func (db *database) Create(ctx context.Context, options *CreateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
-	if err := options.validate(); err != nil {
-		return nil, err
-	}
-
-	//
-	// This operation has no Row Level Security (RLS) check.
-	//
+	// if err := options.validate(); err != nil {
+	// 	return nil, err
+	// }
 
 	// Prepare the payload we have to send to the database transaction.
 	var payload model.Record

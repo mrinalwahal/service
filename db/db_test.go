@@ -11,15 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// Temporary environment that contains all the configuration required by our tests.
-type environment struct {
+// Temporary testconfig that contains all the configuration required by our tests.
+type testconfig struct {
 
 	// Test database connection.
 	conn *gorm.DB
 }
 
 // Setup the test environment.
-func initialize(t *testing.T) *environment {
+func configure(t *testing.T) *testconfig {
 
 	// Open an in-memory database connection with SQLite.
 	conn, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -45,7 +45,7 @@ func initialize(t *testing.T) *environment {
 		}
 	})
 
-	return &environment{
+	return &testconfig{
 		conn: conn,
 	}
 }
@@ -53,7 +53,7 @@ func initialize(t *testing.T) *environment {
 func Test_Database_Create(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -116,7 +116,7 @@ func Test_Database_Create(t *testing.T) {
 func Test_Database_List(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -237,7 +237,7 @@ func Test_Database_List(t *testing.T) {
 func Test_Database_Get(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -271,7 +271,7 @@ func Test_Database_Get(t *testing.T) {
 func Test_Database_Update(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -308,7 +308,7 @@ func Test_Database_Update(t *testing.T) {
 func Test_Database_Delete(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{

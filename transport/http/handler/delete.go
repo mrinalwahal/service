@@ -63,7 +63,7 @@ func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 		})
 		return
@@ -96,14 +96,14 @@ func (h *DeleteHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
 	if err := h.service.Delete(ctx, ID); err != nil {
-		return &response{
+		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Failed to delete the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The record was deleted successfully.",
 	}

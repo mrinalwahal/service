@@ -38,7 +38,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func(*response) error
+		validation func(*Response) error
 
 		// The status code we expect in response.
 		//
@@ -59,7 +59,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 					Title: "model.Record 1",
 				},
 			}, nil),
-			validation: func(r *response) error {
+			validation: func(r *Response) error {
 				if r == nil {
 					return fmt.Errorf("expected a response, got nil")
 				}
@@ -82,7 +82,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 					Title: "model.Record 1",
 				},
 			}, nil),
-			validation: func(r *response) error {
+			validation: func(r *Response) error {
 				if r == nil {
 					return fmt.Errorf("expected a response, got nil")
 				}
@@ -108,7 +108,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 					Title: "model.Record 2",
 				},
 			}, nil),
-			validation: func(r *response) error {
+			validation: func(r *Response) error {
 				if r == nil {
 					return fmt.Errorf("expected a response, got nil")
 				}
@@ -135,7 +135,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 			h.ServeHTTP(tt.args.w, tt.args.r)
 
 			// Decode the body
-			var resp response
+			var resp Response
 			if err := json.Unmarshal(tt.args.w.(*httptest.ResponseRecorder).Body.Bytes(), &resp); err != nil {
 				t.Errorf("ListHandler.ServeHTTP() = %v", err)
 			}

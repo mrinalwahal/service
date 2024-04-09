@@ -43,7 +43,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 		expectation *gomock.Call
 
 		// The validation function that will be used to validate the output.
-		validation func(*response) error
+		validation func(*Response) error
 
 		// The status code we expect in response.
 		//
@@ -86,7 +86,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			}).Return(&model.Record{
 				Title: "Wrong Title",
 			}, nil),
-			validation: func(r *response) error {
+			validation: func(r *Response) error {
 				if r.Message != "Updated title" {
 					return fmt.Errorf("expected message to be 'Updated title', got %s", r.Message)
 				}
@@ -109,7 +109,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			h.ServeHTTP(tt.args.w, tt.args.r)
 
 			// Decode the body
-			var resp response
+			var resp Response
 			if err := json.Unmarshal(tt.args.w.(*httptest.ResponseRecorder).Body.Bytes(), &resp); err != nil {
 				t.Errorf("UpdateHandler.ServeHTTP() = %v", err)
 			}

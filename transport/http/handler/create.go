@@ -15,6 +15,18 @@ type CreateOptions struct {
 	Title string `json:"title"`
 }
 
+// Validate the options.
+func (o *CreateOptions) Validate() error {
+	if o.Title == "" {
+		return &Response{
+			Status:  http.StatusBadRequest,
+			Message: "Title is required.",
+			Err:     ErrInvalidRequestOptions,
+		}
+	}
+	return nil
+}
+
 // Create handler create a new record.
 type CreateHandler struct {
 
@@ -66,10 +78,16 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	options, err := decode[CreateOptions](r)
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
 		})
+		return
+	}
+
+	// Validate the request options.
+	if err := options.Validate(); err != nil {
+		handleErr(w, err)
 		return
 	}
 
@@ -102,14 +120,14 @@ func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) err
 		Title: options.Title,
 	})
 	if err != nil {
-		return &response{
+		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Failed to create the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusCreated,
 		Message: "The record was created successfully.",
 		Data:    record,
