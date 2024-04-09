@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 )
 
@@ -13,6 +15,9 @@ type CreateOptions struct {
 
 	//	Title of the record.
 	Title string `json:"title"`
+
+	// UserID extracted from the request context.
+	UserID uuid.UUID `json:"-"`
 }
 
 // Validate the options.
@@ -85,14 +90,34 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load the context.
+	ctx := r.Context()
+
+	// Load the claims from request context to pass them in the service method.
+	userID, ok := ctx.Value(middleware.UserID).(string)
+	if !ok {
+		handleErr(w, &Response{
+			Status:  http.StatusUnauthorized,
+			Message: "User ID not found in the request context.",
+			Err:     ErrInvalidRequestOptions,
+		})
+		return
+	}
+	options.UserID, err = uuid.Parse(userID)
+	if err != nil {
+		handleErr(w, &Response{
+			Status:  http.StatusBadRequest,
+			Message: "Failed to parse the user ID.",
+			Err:     err,
+		})
+		return
+	}
+
 	// Validate the request options.
 	if err := options.Validate(); err != nil {
 		handleErr(w, err)
 		return
 	}
-
-	// Load the context.
-	ctx := r.Context()
 
 	// Validate the request.
 	if err := h.validate(ctx, &options); err != nil {
@@ -117,7 +142,8 @@ func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) err
 
 	// Call the service method that performs the required operation.
 	record, err := h.service.Create(ctx, &service.CreateOptions{
-		Title: options.Title,
+		Title:  options.Title,
+		UserID: options.UserID,
 	})
 	if err != nil {
 		return &Response{

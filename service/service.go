@@ -60,7 +60,8 @@ func (s *service) Create(ctx context.Context, options *CreateOptions) (*model.Re
 		return nil, ErrInvalidArguments
 	}
 	return s.db.Create(ctx, &db.CreateOptions{
-		Title: options.Title,
+		Title:  options.Title,
+		UserID: options.UserID,
 	})
 }
 
