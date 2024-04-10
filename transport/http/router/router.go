@@ -4,18 +4,17 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/mrinalwahal/service/router/http/handlers"
-	"gorm.io/gorm"
+	"github.com/mrinalwahal/service/service"
+	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 )
 
 type HTTPRouter struct {
 	*http.ServeMux
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db *gorm.DB
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -32,11 +31,10 @@ type HTTPRouter struct {
 
 type HTTPRouterConfig struct {
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -50,7 +48,7 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 
 	router := HTTPRouter{
 		ServeMux: http.NewServeMux(),
-		db:       config.DB,
+		service:  config.Service,
 		log:      config.Logger,
 	}
 
@@ -59,7 +57,7 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		router.log = slog.Default()
 	}
 
-	router.log = router.log.With("layer", "router")
+	// router.log = router.log.With("layer", "http")
 
 	// Register the default routes.
 	router.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -67,30 +65,37 @@ func NewHTTPRouter(config *HTTPRouterConfig) *HTTPRouter {
 		w.Write([]byte("OK"))
 	})
 
-	router.Handle("POST /", handlers.NewCreateHandler(&handlers.CreateHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
-
-	router.Handle("GET /", handlers.NewListHandler(&handlers.ListHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
-
-	router.Handle("GET /{id}", handlers.NewGetHandler(&handlers.GetHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
-
-	router.Handle("PATCH /{id}", handlers.NewUpdateHandler(&handlers.UpdateHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
-
-	router.Handle("DELETE /{id}", handlers.NewDeleteHandler(&handlers.DeleteHandlerConfig{
-		DB:     router.db,
-		Logger: router.log,
-	}))
+	// Register the v1 routes.
+	router.RegisterV1Routes()
 
 	return &router
+}
+
+// RegisterV1Routes registers /v1 routes.
+func (r *HTTPRouter) RegisterV1Routes() {
+
+	r.Handle("POST /v1", v1.NewCreateHandler(&v1.CreateHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("GET /v1", v1.NewListHandler(&v1.ListHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("GET /v1/{id}", v1.NewGetHandler(&v1.GetHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("PATCH /v1/{id}", v1.NewUpdateHandler(&v1.UpdateHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
+
+	r.Handle("DELETE /v1/{id}", v1.NewDeleteHandler(&v1.DeleteHandlerConfig{
+		Service: r.service,
+		Logger:  r.log,
+	}))
 }

@@ -1,9 +1,14 @@
 package service
 
+import "github.com/google/uuid"
+
 type CreateOptions struct {
 
 	//	Title of the record.
 	Title string
+
+	// ID of the user who is creating the record.
+	UserID uuid.UUID
 }
 
 type ListOptions struct {

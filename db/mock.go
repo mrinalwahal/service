@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
+	model "github.com/mrinalwahal/service/model"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,10 +42,10 @@ func (m *MockDB) EXPECT() *MockDBMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockDB) Create(arg0 context.Context, arg1 *CreateOptions) (*Record, error) {
+func (m *MockDB) Create(arg0 context.Context, arg1 *CreateOptions) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
-	ret0, _ := ret[0].(*Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -70,10 +71,10 @@ func (mr *MockDBMockRecorder) Delete(arg0, arg1 any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockDB) Get(arg0 context.Context, arg1 uuid.UUID) (*Record, error) {
+func (m *MockDB) Get(arg0 context.Context, arg1 uuid.UUID) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(*Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -85,10 +86,10 @@ func (mr *MockDBMockRecorder) Get(arg0, arg1 any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockDB) List(arg0 context.Context, arg1 *ListOptions) ([]*Record, error) {
+func (m *MockDB) List(arg0 context.Context, arg1 *ListOptions) ([]*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", arg0, arg1)
-	ret0, _ := ret[0].([]*Record)
+	ret0, _ := ret[0].([]*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -100,10 +101,10 @@ func (mr *MockDBMockRecorder) List(arg0, arg1 any) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockDB) Update(arg0 context.Context, arg1 uuid.UUID, arg2 *UpdateOptions) (*Record, error) {
+func (m *MockDB) Update(arg0 context.Context, arg1 uuid.UUID, arg2 *UpdateOptions) (*model.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*Record)
+	ret0, _ := ret[0].(*model.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

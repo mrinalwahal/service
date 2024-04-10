@@ -6,19 +6,20 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// Temporary environment that contains all the configuration required by our tests.
-type environment struct {
+// Temporary testconfig that contains all the configuration required by our tests.
+type testconfig struct {
 
 	// Test database connection.
 	conn *gorm.DB
 }
 
 // Setup the test environment.
-func initialize(t *testing.T) *environment {
+func configure(t *testing.T) *testconfig {
 
 	// Open an in-memory database connection with SQLite.
 	conn, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
@@ -27,7 +28,7 @@ func initialize(t *testing.T) *environment {
 	}
 
 	// Migrate the schema.
-	if err := conn.AutoMigrate(&Record{}); err != nil {
+	if err := conn.AutoMigrate(&model.Record{}); err != nil {
 		t.Fatalf("failed to migrate the schema: %v", err)
 	}
 
@@ -44,7 +45,7 @@ func initialize(t *testing.T) *environment {
 		}
 	})
 
-	return &environment{
+	return &testconfig{
 		conn: conn,
 	}
 }
@@ -52,97 +53,70 @@ func initialize(t *testing.T) *environment {
 func Test_Database_Create(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
 		conn: environment.conn,
 	}
 
-	type args struct {
-		ctx     context.Context
-		options *CreateOptions
-	}
-	tests := []struct {
+	t.Run("create record", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		options := &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
+		record, err := db.Create(context.Background(), options)
+		if err != nil {
+			t.Fatalf("failed to create a record: %v", err)
+		}
 
-		// The validation function that will be used to validate the output.
-		validation func(*Record) error
+		if record.ID == uuid.Nil {
+			t.Fatalf("expected record ID to be generated automatically, got empty UUID")
+		}
 
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "create a record",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title: "Test Title",
-				},
-			},
-			validation: func(r *Record) error {
-				if r.Title != "Test Title" {
-					return fmt.Errorf("expected record title to be 'Test Title', got '%s'", r.Title)
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty title",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title: "",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "generate UUID of a new record automatically",
-			args: args{
-				ctx: context.Background(),
-				options: &CreateOptions{
-					Title: "Test Title",
-				},
-			},
-			validation: func(r *Record) error {
-				if len(r.ID.String()) == 0 {
-					return fmt.Errorf("expected record ID to be generated automatically, got empty UUID")
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := db.Create(tt.args.ctx, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("database.Create() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("database.Create() = %v, validation produced = %v", got, tt.validation(got))
-			}
-		})
-	}
+		if record.Title != options.Title {
+			t.Fatalf("expected record title to be 'Test Record', got '%s'", record.Title)
+		}
+	})
+
+	t.Run("empty title", func(t *testing.T) {
+
+		options := &CreateOptions{
+			Title:  "",
+			UserID: uuid.New(),
+		}
+
+		_, err := db.Create(context.Background(), options)
+		if err == nil {
+			t.Fatalf("expected an error, got nil")
+		}
+	})
+
+	t.Run("generate UUID of a new record automatically", func(t *testing.T) {
+
+		options := &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		}
+
+		record, err := db.Create(context.Background(), options)
+		if err != nil {
+			t.Fatalf("failed to create a record: %v", err)
+		}
+
+		// Check if the response contains a valid UUID and correct title.
+		if record.ID == uuid.Nil {
+			t.Fatalf("expected record ID to be generated automatically, got empty UUID")
+		}
+	})
 }
 
 func Test_Database_List(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -150,71 +124,120 @@ func Test_Database_List(t *testing.T) {
 	}
 
 	// Seed the database with some records.
-	for i := 0; i < 2; i++ {
+	userID := uuid.New()
+	for i := 0; i < 5; i++ {
 		_, err := db.Create(context.Background(), &CreateOptions{
-			Title: fmt.Sprintf("Record %d", i),
+			Title:  fmt.Sprintf("Record %d", i),
+			UserID: userID,
 		})
 		if err != nil {
 			t.Fatalf("failed to seed the database: %v", err)
 		}
 	}
 
-	type args struct {
-		ctx     context.Context
-		options *ListOptions
-	}
-	tests := []struct {
+	t.Run("list all records", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		records, err := db.List(context.Background(), &ListOptions{})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
+		if len(records) < 1 {
+			t.Fatalf("expected at least 1 record, got %d", len(records))
+		}
+	})
 
-		// The validation function that will be used to validate the output.
-		validation func([]*Record) error
+	t.Run("list by UserID", func(t *testing.T) {
 
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "list records",
-			args: args{
-				ctx:     context.Background(),
-				options: &ListOptions{},
-			},
-			validation: func(records []*Record) error {
-				if len(records) < 1 {
-					return fmt.Errorf("expected at least 1 seed record, got %d", len(records))
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := db.List(tt.args.ctx, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("database.List() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("database.List() = %v, validation produced = %v", got, tt.validation(got))
-			}
+		records, err := db.List(context.Background(), &ListOptions{
+			UserID: userID,
 		})
-	}
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) != 5 {
+			t.Fatalf("expected at least 5 records, got %d", len(records))
+		}
+	})
+
+	t.Run("list w/ title filter", func(t *testing.T) {
+
+		records, err := db.List(context.Background(), &ListOptions{
+			Title: "Record 1",
+		})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) < 1 {
+			t.Fatalf("expected at least 1 record, got %d", len(records))
+		}
+	})
+
+	t.Run("list w/ skip filter", func(t *testing.T) {
+
+		records, err := db.List(context.Background(), &ListOptions{
+			Skip: 2,
+		})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) != 3 {
+			t.Fatalf("expected 3 records, got %d", len(records))
+		}
+	})
+
+	t.Run("list w/ limit filter", func(t *testing.T) {
+
+		records, err := db.List(context.Background(), &ListOptions{
+			Limit: 2,
+		})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) != 2 {
+			t.Fatalf("expected 2 records, got %d", len(records))
+		}
+	})
+
+	t.Run("list w/ orderBy filter", func(t *testing.T) {
+
+		records, err := db.List(context.Background(), &ListOptions{
+			OrderBy: "title",
+		})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if records[3].Title != "Record 3" {
+			t.Logf("received: %v", records[3])
+			t.Fatalf("expected third record to be 'Record 4', got '%s'", records[3].Title)
+		}
+	})
+
+	t.Run("list w/ orderBy and orderDirection filter", func(t *testing.T) {
+
+		records, err := db.List(context.Background(), &ListOptions{
+			OrderBy:        "title",
+			OrderDirection: "desc",
+		})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if records[0].Title != "Record 4" {
+			t.Fatalf("expected first record to be 'Record 4', got '%s'", records[0].Title)
+		}
+	})
 }
 
 func Test_Database_Get(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -222,69 +245,33 @@ func Test_Database_Get(t *testing.T) {
 	}
 
 	// Seed the database with sample records.
-	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
-	})
+	options := CreateOptions{
+		Title:  "Test Record",
+		UserID: uuid.New(),
+	}
+
+	seed, err := db.Create(context.Background(), &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	type args struct {
-		ctx context.Context
-		ID  uuid.UUID
-	}
-	tests := []struct {
+	t.Run("get seed record", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		record, err := db.Get(context.Background(), seed.ID)
+		if err != nil {
+			t.Fatalf("failed to get record: %v", err)
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
-
-		// The validation function that will be used to validate the output.
-		validation func(*Record) error
-
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "Get seed record",
-			args: args{
-				ctx: context.Background(),
-				ID:  seed.ID,
-			},
-			validation: func(r *Record) error {
-				if r.ID != seed.ID {
-					return fmt.Errorf("expected retrieved record to equal seed, got = %v", r)
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := db.Get(tt.args.ctx, tt.args.ID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("database.Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("database.Get() = %v, validation produced = %v", got, tt.validation(got))
-			}
-		})
-	}
+		if record.ID != seed.ID {
+			t.Fatalf("expected retrieved record to equal seed, got = %v", record)
+		}
+	})
 }
 
 func Test_Database_Update(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -292,73 +279,36 @@ func Test_Database_Update(t *testing.T) {
 	}
 
 	// Seed the database with sample records.
-	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
-	})
+	options := CreateOptions{
+		Title:  "Test Record",
+		UserID: uuid.New(),
+	}
+
+	seed, err := db.Create(context.Background(), &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	type args struct {
-		ctx     context.Context
-		id      uuid.UUID
-		options *UpdateOptions
-	}
-	tests := []struct {
+	t.Run("update seed record", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		options := UpdateOptions{
+			Title: "Updated Title",
+		}
+		updated, err := db.Update(context.Background(), seed.ID, &options)
+		if err != nil {
+			t.Fatalf("failed to update record: %v", err)
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
-
-		// The validation function that will be used to validate the output.
-		validation func(*Record) error
-
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "Update seed record",
-			args: args{
-				ctx: context.Background(),
-				id:  seed.ID,
-				options: &UpdateOptions{
-					Title: "Updated Title",
-				},
-			},
-			validation: func(r *Record) error {
-				if r.Title != "Updated Title" {
-					return fmt.Errorf("expected updated record title to be 'Updated Title', got '%s'", r.Title)
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := db.Update(tt.args.ctx, tt.args.id, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("database.Update() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("database.Update() = %v, validation produced = %v", got, tt.validation(got))
-			}
-		})
-	}
+		if updated.Title != options.Title {
+			t.Fatalf("expected updated record title to be '%s', got '%s'", options.Title, updated.Title)
+		}
+	})
 }
 
 func Test_Database_Delete(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Initialize the database.
 	db := &database{
@@ -366,48 +316,26 @@ func Test_Database_Delete(t *testing.T) {
 	}
 
 	// Seed the database with sample records.
-	seed, err := db.Create(context.Background(), &CreateOptions{
-		Title: "Test Record",
-	})
+	options := CreateOptions{
+		Title:  "Test Record",
+		UserID: uuid.New(),
+	}
+
+	seed, err := db.Create(context.Background(), &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	type args struct {
-		ctx context.Context
-		ID  uuid.UUID
-	}
-	tests := []struct {
+	t.Run("delete seed record", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		err := db.Delete(context.Background(), seed.ID)
+		if err != nil {
+			t.Fatalf("failed to delete record: %v", err)
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test Record"}
-		args args
-
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "Delete seed record",
-			args: args{
-				ctx: context.Background(),
-				ID:  seed.ID,
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := db.Delete(tt.args.ctx, tt.args.ID); (err != nil) != tt.wantErr {
-				t.Errorf("database.Delete() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
+		_, err = db.Get(context.Background(), seed.ID)
+		if err == nil {
+			t.Fatalf("expected record to be deleted, got nil")
+		}
+	})
 }

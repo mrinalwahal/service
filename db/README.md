@@ -33,6 +33,10 @@ To write itnegration tests, you would typically want to mock this layer's interf
     ```
 1. Generate mocks.
     ```
+    go generate ./...
+    ```
+    Or:
+    ```
     mockgen -destination=mock.go -source=db.go -package=db
     ```
 

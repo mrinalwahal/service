@@ -1,4 +1,4 @@
-package handlers
+package v1
 
 import (
 	"context"
@@ -6,9 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dyninc/qstring"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // ListOptions represents the options for listing records.
@@ -33,16 +31,10 @@ type ListOptions struct {
 // List handler lists the records.
 type ListHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
-
-	// Options contains the payload received in the incoming request.
-	// This is useful in passing the request payload to the service layer.
-	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
-	options *ListOptions
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -53,11 +45,10 @@ type ListHandler struct {
 
 type ListHandlerConfig struct {
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -67,9 +58,10 @@ type ListHandlerConfig struct {
 }
 
 // NewListHandler lists a new instance of `ListHandler`.
-func NewListHandler(config *ListHandlerConfig) *ListHandler {
+func NewListHandler(config *ListHandlerConfig) Handler {
 	handler := ListHandler{
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -77,13 +69,6 @@ func NewListHandler(config *ListHandlerConfig) *ListHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "list")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB:     config.DB,
-		Logger: handler.log,
-	})
-	handler.db = db
 
 	return &handler
 }
@@ -95,57 +80,50 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var options ListOptions
 	err := qstring.Unmarshal(r.URL.Query(), &options)
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
 		})
 		return
 	}
-	h.options = &options
 
 	// Load the context.
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.validate(ctx, &options); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.process(ctx, &options); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *ListHandler) validate(ctx context.Context) error {
+func (h *ListHandler) validate(ctx context.Context, options *ListOptions) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *ListHandler) function(ctx context.Context) error {
-
-	// Get the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+// process applies the fundamental business logic to complete required operation.
+func (h *ListHandler) process(ctx context.Context, options *ListOptions) error {
 
 	// Call the service method that performs the required operation.
-	records, err := svc.List(ctx, &service.ListOptions{
-		Title: h.options.Title,
+	records, err := h.service.List(ctx, &service.ListOptions{
+		Title: options.Title,
 	})
 	if err != nil {
-		return &response{
-			Status:  http.StatusInternalServerError,
+		return &Response{
+			Status:  http.StatusBadRequest,
 			Message: "Failed to list the records.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The records were retrieved successfully.",
 		Data:    records,

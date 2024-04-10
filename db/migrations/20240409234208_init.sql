@@ -6,7 +6,9 @@ CREATE TABLE "public"."records" (
   "updated_at" timestamptz NULL,
   "deleted_at" timestamptz NULL,
   "title" text NOT NULL,
-  PRIMARY KEY ("id")
+  "user_id" uuid NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "chk_records_title" CHECK (length(title) > 0)
 );
 
 -- +goose Down

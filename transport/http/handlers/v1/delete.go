@@ -1,4 +1,4 @@
-package handlers
+package v1
 
 import (
 	"context"
@@ -6,19 +6,16 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // Delete handler deletes the record.
 type DeleteHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
+	service service.Service
 
 	// The UUID of the record to delete.
 	id uuid.UUID
@@ -32,11 +29,10 @@ type DeleteHandler struct {
 
 type DeleteHandlerConfig struct {
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -46,9 +42,10 @@ type DeleteHandlerConfig struct {
 }
 
 // NewDeleteHandler deletes a new instance of `DeleteHandler`.
-func NewDeleteHandler(config *DeleteHandlerConfig) *DeleteHandler {
+func NewDeleteHandler(config *DeleteHandlerConfig) Handler {
 	handler := DeleteHandler{
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -56,13 +53,6 @@ func NewDeleteHandler(config *DeleteHandlerConfig) *DeleteHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "delete")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB:     config.DB,
-		Logger: handler.log,
-	})
-	handler.db = db
 
 	return &handler
 }
@@ -73,7 +63,7 @@ func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 		})
 		return
@@ -84,42 +74,36 @@ func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.validate(ctx, id); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.process(ctx, id); err != nil {
 		handleErr(w, err)
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
+// Validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *DeleteHandler) validate(ctx context.Context) error {
+func (h *DeleteHandler) validate(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *DeleteHandler) function(ctx context.Context) error {
-
-	// Delete the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+// Process applies the fundamental business logic to complete required operation.
+func (h *DeleteHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	if err := svc.Delete(ctx, h.id); err != nil {
-		return &response{
-			Status:  http.StatusInternalServerError,
+	if err := h.service.Delete(ctx, ID); err != nil {
+		return &Response{
+			Status:  http.StatusBadRequest,
 			Message: "Failed to delete the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The record was deleted successfully.",
 	}

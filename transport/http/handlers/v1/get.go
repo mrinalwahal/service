@@ -1,4 +1,4 @@
-package handlers
+package v1
 
 import (
 	"context"
@@ -6,22 +6,16 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // Get handler gets the record.
 type GetHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
-
-	// The UUID of the record to get.
-	id uuid.UUID
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -32,11 +26,10 @@ type GetHandler struct {
 
 type GetHandlerConfig struct {
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -46,9 +39,10 @@ type GetHandlerConfig struct {
 }
 
 // NewGetHandler gets a new instance of `GetHandler`.
-func NewGetHandler(config *GetHandlerConfig) *GetHandler {
+func NewGetHandler(config *GetHandlerConfig) Handler {
 	handler := GetHandler{
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -56,13 +50,6 @@ func NewGetHandler(config *GetHandlerConfig) *GetHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "get")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB:     config.DB,
-		Logger: handler.log,
-	})
-	handler.db = db
 
 	return &handler
 }
@@ -73,54 +60,47 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 		})
 		return
 	}
-	h.id = id
 
 	// Load the context.
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.validate(ctx, id); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.process(ctx, id); err != nil {
 		handleErr(w, err)
 	}
 }
 
 // validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *GetHandler) validate(ctx context.Context) error {
+func (h *GetHandler) validate(ctx context.Context, ID uuid.UUID) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *GetHandler) function(ctx context.Context) error {
-
-	// Get the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+// process applies the fundamental business logic to complete required operation.
+func (h *GetHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	record, err := svc.Get(ctx, h.id)
+	record, err := h.service.Get(ctx, ID)
 	if err != nil {
-		return &response{
-			Status:  http.StatusInternalServerError,
+		return &Response{
+			Status:  http.StatusBadRequest,
 			Message: "Failed to get the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The record was retrieved successfully.",
 		Data:    record,

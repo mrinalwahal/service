@@ -1,0 +1,13 @@
+entity user {}
+
+entity record {
+
+    // Represents the owner of the record.
+    relation owner @user
+
+    // Only the owner can perform CRUD operations on the `records` resource/table.
+    permission create = owner
+    permission read = owner
+    permission update = owner
+    permission delete = owner
+}

@@ -1,4 +1,4 @@
-package handlers
+package v1
 
 import (
 	"context"
@@ -6,9 +6,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/service"
-	"gorm.io/gorm"
 )
 
 // UpdateOptions represents the options for updating a record.
@@ -21,19 +19,10 @@ type UpdateOptions struct {
 // Update handler update a new record.
 type UpdateHandler struct {
 
-	// Database layer.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	db db.DB
-
-	// The UUID of the record to update.
-	id uuid.UUID
-
-	// Options contains the payload received in the incoming request.
-	// This is useful in passing the request payload to the service layer.
-	// For example, it contains the request body in case of a POST request. Or the query parameters in case of a GET request.
-	options *UpdateOptions
+	service service.Service
 
 	// log is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -44,11 +33,10 @@ type UpdateHandler struct {
 
 type UpdateHandlerConfig struct {
 
-	// Database connection.
-	// The connection should already be open.
+	// Service layer.
 	//
 	// This field is mandatory.
-	DB *gorm.DB
+	Service service.Service
 
 	// Logger is the `log/slog` instance that will be used to log messages.
 	// Default: `slog.DefaultLogger`
@@ -58,9 +46,10 @@ type UpdateHandlerConfig struct {
 }
 
 // NewUpdateHandler updates a new instance of `UpdateHandler`.
-func NewUpdateHandler(config *UpdateHandlerConfig) *UpdateHandler {
+func NewUpdateHandler(config *UpdateHandlerConfig) Handler {
 	handler := UpdateHandler{
-		log: config.Logger,
+		service: config.Service,
+		log:     config.Logger,
 	}
 
 	// Set the default logger if not provided.
@@ -68,13 +57,6 @@ func NewUpdateHandler(config *UpdateHandlerConfig) *UpdateHandler {
 		handler.log = slog.Default()
 	}
 	handler.log = handler.log.With("handler", "update")
-
-	// Connect the database layer.
-	db := db.NewDB(&db.Config{
-		DB:     config.DB,
-		Logger: handler.log,
-	})
-	handler.db = db
 
 	return &handler
 }
@@ -85,66 +67,58 @@ func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid ID.",
 		})
 		return
 	}
-	h.id = id
 
 	options, err := decode[UpdateOptions](r)
 	if err != nil {
-		write(w, http.StatusBadRequest, &response{
+		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
 		})
 		return
 	}
-	h.options = &options
 
 	// Load the context.
 	ctx := r.Context()
 
 	// Validate the request.
-	if err := h.validate(ctx); err != nil {
+	if err := h.validate(ctx, id, &options); err != nil {
 		handleErr(w, err)
 		return
 	}
 
 	// Call the function.
-	if err := h.function(ctx); err != nil {
+	if err := h.process(ctx, id, &options); err != nil {
 		handleErr(w, err)
 	}
 }
 
 // validate function ascertains that the requester is authorized to perform this request.
 // This is where the "API rule/condition" logic is applied.
-func (h *UpdateHandler) validate(ctx context.Context) error {
+func (h *UpdateHandler) validate(ctx context.Context, ID uuid.UUID, options *UpdateOptions) error {
 	return nil
 }
 
-// function applies the fundamental business logic to complete required operation.
-func (h *UpdateHandler) function(ctx context.Context) error {
-
-	// Get the appropriate business service.
-	svc := service.NewService(&service.Config{
-		DB:     h.db,
-		Logger: h.log,
-	})
+// process applies the fundamental business logic to complete required operation.
+func (h *UpdateHandler) process(ctx context.Context, ID uuid.UUID, options *UpdateOptions) error {
 
 	// Call the service method that performs the required operation.
-	record, err := svc.Update(ctx, h.id, &service.UpdateOptions{
-		Title: h.options.Title,
+	record, err := h.service.Update(ctx, ID, &service.UpdateOptions{
+		Title: options.Title,
 	})
 	if err != nil {
-		return &response{
-			Status:  http.StatusInternalServerError,
+		return &Response{
+			Status:  http.StatusBadRequest,
 			Message: "Failed to update the record.",
 			Err:     err,
 		}
 	}
 
-	return &response{
+	return &Response{
 		Status:  http.StatusOK,
 		Message: "The record was updated successfully.",
 		Data:    record,
