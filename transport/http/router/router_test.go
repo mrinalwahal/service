@@ -107,7 +107,7 @@ func Test_Router(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -139,7 +139,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -172,7 +172,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -197,7 +197,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -231,7 +231,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -256,7 +256,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -291,7 +291,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -333,7 +333,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -377,7 +377,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -411,7 +411,7 @@ func Test_Router(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+		request = request.WithContext(context.WithValue(request.Context(), middleware.XUserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{

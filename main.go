@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/mrinalwahal/service/authn"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
@@ -128,36 +126,6 @@ func main() {
 	baseRouter := http.NewServeMux()
 	baseRouter.Handle("/records/", http.StripPrefix("/records", router))
 
-	// Test signin route.
-	baseRouter.HandleFunc("/signin", func(w http.ResponseWriter, r *http.Request) {
-
-		// Parse the request body.
-		var options struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		user, err := authn.GetUserByEmailAndPassword(options.Email, options.Password)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		// Generate JWT.
-		token := authn.GenerateJWT(user.ID.String())
-		if token == "" {
-			http.Error(w, "failed to generate JWT", http.StatusInternalServerError)
-			return
-		}
-
-		// Write the JWT to the response.
-		w.Header().Set("Authorization", token)
-		w.WriteHeader(http.StatusOK)
-	})
-
 	//	Configure and start the server.
 	server := http.Server{
 		Addr:     ":8080",
@@ -173,37 +141,3 @@ func main() {
 		panic(err)
 	}
 }
-
-// func init() {
-
-// 	apiBasePath := "/auth"
-// 	websiteBasePath := "/auth"
-// 	if err := supertokens.Init(supertokens.TypeInput{
-// 		Supertokens: &supertokens.ConnectionInfo{
-// 			ConnectionURI: "https://st-dev-f3a64390-f6b4-11ee-8bd5-83067183b5ac.aws.supertokens.io",
-// 			APIKey:        "103guxPTFUvqELLcm6OEfWzWUJ",
-// 		},
-// 		AppInfo: supertokens.AppInfo{
-// 			AppName:         "records",
-// 			APIDomain:       "http://localhost:8080",
-// 			WebsiteDomain:   "http://localhost:3000",
-// 			APIBasePath:     &apiBasePath,
-// 			WebsiteBasePath: &websiteBasePath,
-// 		},
-// 		RecipeList: []supertokens.Recipe{
-// 			thirdpartyemailpassword.Init(&tpepmodels.TypeInput{ /*TODO: See next step*/ }),
-// 			session.Init(&sessmodels.TypeInput{
-// 				GetTokenTransferMethod: func(req *http.Request, forCreateNewSession bool, userContext supertokens.UserContext) sessmodels.TokenTransferMethod {
-// 					return sessmodels.HeaderTransferMethod
-// 				},
-// 			}), // initializes session features
-// 			dashboard.Init(&dashboardmodels.TypeInput{
-// 				Admins: &[]string{
-// 					"test@gmail.com",
-// 				},
-// 			}), // initializes dashboard features
-// 		},
-// 	}); err != nil {
-// 		panic(err)
-// 	}
-// }

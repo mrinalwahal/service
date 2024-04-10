@@ -95,10 +95,10 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// [DEBUG] Log the user ID form context.
-	fmt.Println("User ID:", ctx.Value(middleware.UserID))
+	fmt.Println("User ID:", ctx.Value(middleware.XUserID))
 
 	// Load the claims from request context to pass them in the service method.
-	userID, ok := ctx.Value(middleware.UserID).(uuid.UUID)
+	userID, ok := ctx.Value(middleware.XUserID).(uuid.UUID)
 	if !ok {
 		handleErr(w, &Response{
 			Status:  http.StatusUnauthorized,

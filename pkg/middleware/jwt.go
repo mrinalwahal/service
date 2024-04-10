@@ -9,6 +9,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+/*
+	Generate temporary JWTs for testing from here: https://oauth.tools/collection/1712706959493-UZt
+*/
+
+const XUserID = "X-User-ID"
+
 // JWT is a middleware that authenticates the incoming request.
 // This middleware parses the claims form the incoming JWT in the `Authorization` header and writes them to the request context.
 // If the request is not authenticated, it returns a 401 Unauthorized response.
@@ -66,7 +72,7 @@ func JWT(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			// Write the user_id to the request context.
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, UserID, userID)
+			ctx = context.WithValue(ctx, XUserID, userID)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)

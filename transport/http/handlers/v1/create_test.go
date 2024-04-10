@@ -88,7 +88,7 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/", nil)
 
 		// Set random UserID in the request context.
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.XUserID, uuid.New()))
 
 		// Create a new response recorder.
 		w := httptest.NewRecorder()
@@ -126,7 +126,7 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 
 		// Set random UserID in the request context.
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.XUserID, uuid.New()))
 
 		// Create a new response recorder.
 		w := httptest.NewRecorder()
@@ -164,7 +164,7 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
 
 		// Set random UserID in the request context.
-		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.XUserID, uuid.New()))
 
 		// Create a new response recorder.
 		w := httptest.NewRecorder()
