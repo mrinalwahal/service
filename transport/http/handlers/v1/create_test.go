@@ -2,11 +2,15 @@ package v1
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 	"go.uber.org/mock/gomock"
 )
@@ -37,58 +41,144 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 	// Setup the test environment.
 	environment := initialize(t)
 
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	tests := []struct {
+	t.Run("create record without sending UserID", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "create record"
-		name string
+		// Initialize the handler.
+		h := &CreateHandler{
+			service: environment.service,
+			log:     environment.logger,
+		}
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: `w: httptest.NewRecorder(), r: httptest.NewRequest(http.MethodPost, "/", nil)`
-		args args
-
-		// The expectation that we will set on the mock database layer.
-		expectation *gomock.Call
-
-		// The status code we expect in response.
-		//
-		// Example: http.StatusOK
-		want int
-	}{
-		{
-			name: "create record",
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"title":"test"}`)),
-			},
-			expectation: environment.service.EXPECT().Create(gomock.Any(), gomock.Any()),
-			want:        http.StatusCreated,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := &CreateHandler{
-				service: environment.service,
-				log:     environment.logger,
-			}
-
-			// Set the expectation.
-			tt.expectation.Times(1)
-
-			h.ServeHTTP(tt.args.w, tt.args.r)
-
-			// Validate the status code.
-			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.want {
-				t.Log(tt.args.w.(*httptest.ResponseRecorder).Body.String())
-				t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, tt.want)
-			}
+		// Prepare the request body.
+		body, err := json.Marshal(CreateOptions{
+			Title: "Test",
 		})
-	}
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create a new request.
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+
+		// Create a new response recorder.
+		w := httptest.NewRecorder()
+
+		// Set the expectation for the service layer.
+		environment.service.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
+
+		// Serve the request.
+		h.ServeHTTP(w, req)
+
+		// Validate the status code.
+		if status := w.Code; status != http.StatusUnauthorized {
+			t.Logf("Response: %s", w.Body.String())
+			t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("create record with nil options", func(t *testing.T) {
+
+		// Initialize the handler.
+		h := &CreateHandler{
+			service: environment.service,
+			log:     environment.logger,
+		}
+
+		// Create a new request.
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
+
+		// Set random UserID in the request context.
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+
+		// Create a new response recorder.
+		w := httptest.NewRecorder()
+
+		// Set the expectation for the service layer.
+		environment.service.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
+
+		// Serve the request.
+		h.ServeHTTP(w, req)
+
+		// Validate the status code.
+		if status := w.Code; status != http.StatusBadRequest {
+			t.Logf("Response: %s", w.Body.String())
+			t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("create record with empty title", func(t *testing.T) {
+
+		// Initialize the handler.
+		h := &CreateHandler{
+			service: environment.service,
+			log:     environment.logger,
+		}
+
+		// Prepare the request body.
+		body, err := json.Marshal(CreateOptions{
+			Title: "",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create a new request.
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+
+		// Set random UserID in the request context.
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+
+		// Create a new response recorder.
+		w := httptest.NewRecorder()
+
+		// Set the expectation for the service layer.
+		environment.service.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
+
+		// Serve the request.
+		h.ServeHTTP(w, req)
+
+		// Validate the status code.
+		if status := w.Code; status != http.StatusBadRequest {
+			t.Logf("Response: %s", w.Body.String())
+			t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("create record with valid options", func(t *testing.T) {
+
+		// Initialize the handler.
+		h := &CreateHandler{
+			service: environment.service,
+			log:     environment.logger,
+		}
+
+		// Prepare the request body.
+		body, err := json.Marshal(CreateOptions{
+			Title: "Test",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create a new request.
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body))
+
+		// Set random UserID in the request context.
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserID, uuid.New()))
+
+		// Create a new response recorder.
+		w := httptest.NewRecorder()
+
+		// Set the expectation for the service layer.
+		environment.service.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1)
+
+		// Serve the request.
+		h.ServeHTTP(w, req)
+
+		// Validate the status code.
+		if status := w.Code; status != http.StatusCreated {
+			t.Logf("Response: %s", w.Body.String())
+			t.Errorf("CreateHandler.ServeHTTP() = %v, want %v", status, http.StatusCreated)
+		}
+	})
 }

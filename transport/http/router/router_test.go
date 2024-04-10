@@ -10,8 +10,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/model"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 	"gorm.io/driver/sqlite"
@@ -77,11 +79,35 @@ func Test_Router(t *testing.T) {
 	// Configure the test environment.
 	config := configure(t)
 
+	t.Run("request to create record w/ no UserID", func(t *testing.T) {
+
+		// Prepare the request and response recorder.
+		request := httptest.NewRequest(http.MethodPost, "/v1", nil)
+		response := httptest.NewRecorder()
+
+		// Prepare the router.
+		router := NewHTTPRouter(&HTTPRouterConfig{
+			Service: config.service,
+			Logger:  config.log,
+		})
+
+		// Serve the request.
+		router.ServeHTTP(response, request)
+
+		// Check the response status code.
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("expected status code %d, got %d", http.StatusBadRequest, response.Code)
+		}
+	})
+
 	t.Run("request to create record w/ no body", func(t *testing.T) {
 
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodPost, "/v1", nil)
 		response := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -111,6 +137,9 @@ func Test_Router(t *testing.T) {
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodPost, "/v1", bytes.NewBuffer(body))
 		recorder := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -142,6 +171,9 @@ func Test_Router(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/v1", bytes.NewBuffer(body))
 		recorder := httptest.NewRecorder()
 
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
 			Service: config.service,
@@ -164,6 +196,9 @@ func Test_Router(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/v1/invalid-id", nil)
 		recorder := httptest.NewRecorder()
 
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
 			Service: config.service,
@@ -184,7 +219,8 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title: "test",
+			Title:  "test",
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -193,6 +229,9 @@ func Test_Router(t *testing.T) {
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s", record.ID), nil)
 		recorder := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -215,6 +254,9 @@ func Test_Router(t *testing.T) {
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodGet, "/v1", nil)
 		recorder := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -248,6 +290,9 @@ func Test_Router(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPatch, "/v1/invalid-id", nil)
 		recorder := httptest.NewRecorder()
 
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
 			Service: config.service,
@@ -268,7 +313,8 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title: "test",
+			Title:  "test",
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -285,6 +331,9 @@ func Test_Router(t *testing.T) {
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/v1/%s", record.ID), bytes.NewBuffer(body))
 		recorder := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -327,6 +376,9 @@ func Test_Router(t *testing.T) {
 		request := httptest.NewRequest(http.MethodDelete, "/v1/invalid-id", nil)
 		recorder := httptest.NewRecorder()
 
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
+
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
 			Service: config.service,
@@ -347,7 +399,8 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title: "test",
+			Title:  "test",
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -356,6 +409,9 @@ func Test_Router(t *testing.T) {
 		// Prepare the request and response recorder.
 		request := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/%s", record.ID), nil)
 		recorder := httptest.NewRecorder()
+
+		// Set random UserID in the request context.
+		request = request.WithContext(context.WithValue(request.Context(), middleware.UserID, uuid.New()))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{

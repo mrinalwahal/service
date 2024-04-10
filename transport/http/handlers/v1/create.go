@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -93,25 +94,28 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Load the context.
 	ctx := r.Context()
 
+	// [DEBUG] Log the user ID form context.
+	fmt.Println("User ID:", ctx.Value(middleware.UserID))
+
 	// Load the claims from request context to pass them in the service method.
-	userID, ok := ctx.Value(middleware.UserID).(string)
+	userID, ok := ctx.Value(middleware.UserID).(uuid.UUID)
 	if !ok {
 		handleErr(w, &Response{
 			Status:  http.StatusUnauthorized,
 			Message: "User ID not found in the request context.",
-			Err:     ErrInvalidRequestOptions,
+			Err:     ErrInvalidUserID,
 		})
 		return
 	}
-	options.UserID, err = uuid.Parse(userID)
-	if err != nil {
+	if userID == uuid.Nil {
 		handleErr(w, &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Failed to parse the user ID.",
-			Err:     err,
+			Status:  http.StatusUnauthorized,
+			Message: "User ID is invalid.",
+			Err:     ErrInvalidUserID,
 		})
 		return
 	}
+	options.UserID = userID
 
 	// Validate the request options.
 	if err := options.Validate(); err != nil {
