@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	v1 "github.com/mrinalwahal/service/api/http/handlers/v1"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
-	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
