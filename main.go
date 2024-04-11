@@ -116,7 +116,7 @@ func main() {
 		middleware.TraceID,
 		middleware.CorrelationID,
 		// TODO: middleware.RateLimit,
-		middleware.CORS(&middleware.CORSConfig{}),
+		middleware.CORS(nil),
 		middleware.Recover(&middleware.RecoverConfig{
 			Logger: middlewareLogger,
 		}),
@@ -124,8 +124,7 @@ func main() {
 			Logger: middlewareLogger,
 		}),
 		middleware.JWT(&middleware.JWTConfig{
-			Logger: middlewareLogger,
-			Key:    os.Getenv("JWT_SECRET"),
+			Key: os.Getenv("JWT_SECRET"),
 			ExceptionalRoutes: []string{
 				"/login",
 				"/healthz",

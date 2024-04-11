@@ -38,6 +38,9 @@ type CORSConfig struct {
 func CORS(config *CORSConfig) Middleware {
 
 	// Set the default configuration.
+	if config == nil {
+		config = &CORSConfig{}
+	}
 
 	if config.AllowedOrigins == nil {
 		config.AllowedOrigins = []string{"*"}

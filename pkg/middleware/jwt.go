@@ -68,6 +68,9 @@ type JWTConfig struct {
 func JWT(config *JWTConfig) Middleware {
 
 	// Set the default configuration.
+	if config == nil {
+		config = &JWTConfig{}
+	}
 
 	if config.Prefix == "" {
 		config.Prefix = "Bearer"

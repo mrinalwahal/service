@@ -20,6 +20,9 @@ type WebhookConfig struct {
 func Webhook(config *WebhookConfig) Middleware {
 
 	// Set the default configuration.
+	if config == nil {
+		config = &WebhookConfig{}
+	}
 
 	if config.Token == "" {
 		panic("middleware: webhook: token is required")

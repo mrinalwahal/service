@@ -32,6 +32,16 @@ type LoggingConfig struct {
 }
 
 func Logging(config *LoggingConfig) Middleware {
+
+	// Set the default configuration.
+	if config == nil {
+		config = &LoggingConfig{}
+	}
+
+	if config.Logger == nil {
+		config.Logger = slog.Default()
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
