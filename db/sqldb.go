@@ -37,16 +37,16 @@ type sqldb struct {
 }
 
 // Create operation creates a new record in the database.
-func (db *sqldb) Create(ctx context.Context, options *CreateOptions, requester *Requester) (*model.Record, error) {
+func (db *sqldb) Create(ctx context.Context, options *CreateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 	if options == nil {
 		return nil, ErrInvalidOptions
 	}
 
-	//
+	// Try to extract the requester details from the context.
 	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	//
-	if requester != nil {
+	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	if exists {
 		options.UserID = requester.ID
 	}
 
@@ -72,14 +72,17 @@ func (db *sqldb) Create(ctx context.Context, options *CreateOptions, requester *
 	return &payload, nil
 }
 
-func (db *sqldb) List(ctx context.Context, options *ListOptions, requester *Requester) ([]*model.Record, error) {
+// List operation fetches a list of records from the database.
+func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	//
+	// Try to extract the requester details from the context.
 	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	//
-	if requester != nil {
-		options.UserID = requester.ID
+	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	if exists {
+		txn = txn.Where(&model.Record{
+			UserID: requester.ID,
+		})
 	}
 
 	// Validate options.
@@ -104,11 +107,6 @@ func (db *sqldb) List(ctx context.Context, options *ListOptions, requester *Requ
 			Title: options.Title,
 		})
 	}
-	if options.UserID != uuid.Nil {
-		query = query.Where(&model.Record{
-			UserID: options.UserID,
-		})
-	}
 
 	if result := query.Find(&payload); result.Error != nil {
 		return nil, result.Error
@@ -117,13 +115,13 @@ func (db *sqldb) List(ctx context.Context, options *ListOptions, requester *Requ
 }
 
 // Get operation fetches a record from the database.
-func (db *sqldb) Get(ctx context.Context, ID uuid.UUID, requester *Requester) (*model.Record, error) {
+func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	//
+	// Try to extract the requester details from the context.
 	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	//
-	if requester != nil {
+	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	if exists {
 		txn = txn.Where(&model.Record{
 			UserID: requester.ID,
 		})
@@ -138,13 +136,14 @@ func (db *sqldb) Get(ctx context.Context, ID uuid.UUID, requester *Requester) (*
 	return &payload, nil
 }
 
-func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions, requester *Requester) (*model.Record, error) {
+// Update operation updates a record in the database.
+func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	//
+	// Try to extract the requester details from the context.
 	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	//
-	if requester != nil {
+	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	if exists {
 		txn = txn.Where(&model.Record{
 			UserID: requester.ID,
 		})
@@ -159,16 +158,17 @@ func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOption
 	if result := txn.Model(&payload).Updates(options); result.Error != nil {
 		return nil, result.Error
 	}
-	return db.Get(ctx, id, requester)
+	return db.Get(ctx, id)
 }
 
-func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID, requester *Requester) error {
+// Delete operation deletes a record from the database.
+func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 
-	//
+	// Try to extract the requester details from the context.
 	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	//
-	if requester != nil {
+	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	if exists {
 		txn = txn.Where(&model.Record{
 			UserID: requester.ID,
 		})

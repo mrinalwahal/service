@@ -2,9 +2,11 @@ package db
 
 import "github.com/google/uuid"
 
+const XRequestingUser = "X-Requesting-User"
+
 // Requester is the structure that holds the information of the user who sent the request.
 type Requester struct {
-	ID uuid.UUID
+	ID uuid.UUID `json:"id"`
 }
 
 // CreateOptions holds the options for creating a new record.
@@ -32,8 +34,6 @@ type ListOptions struct {
 
 	//	Title of the record.
 	Title string
-	//	ID of the user who is created the record.
-	UserID uuid.UUID
 	//	Skip for pagination.
 	Skip int
 	//	Limit for pagination.

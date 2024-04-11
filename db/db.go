@@ -10,9 +10,9 @@ import (
 
 // DB interface declares the signature of the database layer.
 type DB interface {
-	Create(context.Context, *CreateOptions, *Requester) (*model.Record, error)
-	List(context.Context, *ListOptions, *Requester) ([]*model.Record, error)
-	Get(context.Context, uuid.UUID, *Requester) (*model.Record, error)
-	Update(context.Context, uuid.UUID, *UpdateOptions, *Requester) (*model.Record, error)
-	Delete(context.Context, uuid.UUID, *Requester) error
+	Create(context.Context, *CreateOptions) (*model.Record, error)
+	List(context.Context, *ListOptions) ([]*model.Record, error)
+	Get(context.Context, uuid.UUID) (*model.Record, error)
+	Update(context.Context, uuid.UUID, *UpdateOptions) (*model.Record, error)
+	Delete(context.Context, uuid.UUID) error
 }

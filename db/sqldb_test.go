@@ -62,33 +62,35 @@ func Test_Database_Create(t *testing.T) {
 
 	t.Run("create record with nil options", func(t *testing.T) {
 
-		_, err := db.Create(context.Background(), nil, nil)
+		_, err := db.Create(context.Background(), nil)
 		if err == nil || err != ErrInvalidOptions {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
-	t.Run("create record with options and no requester details", func(t *testing.T) {
+	t.Run("create record with options w/o requester", func(t *testing.T) {
 
 		options := &CreateOptions{
 			Title: "Test Record",
 		}
 
-		_, err := db.Create(context.Background(), options, nil)
+		_, err := db.Create(context.Background(), options)
 		if err == nil {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
-	t.Run("create record with options and requester details", func(t *testing.T) {
+	t.Run("create record with options and requester", func(t *testing.T) {
 
 		options := &CreateOptions{
 			Title: "Test Record",
 		}
 
-		record, err := db.Create(context.Background(), options, &Requester{
+		// Add requester details to the context.
+		ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
 			ID: uuid.New(),
 		})
+		record, err := db.Create(ctx, options)
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
 		}
@@ -114,62 +116,38 @@ func Test_Database_List(t *testing.T) {
 		conn: environment.conn,
 	}
 
-	// Seed the database with some records.
-	requester := &Requester{
+	// Add requester details to the context.
+	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
 		ID: uuid.New(),
-	}
+	})
+
+	// Seed the database with some records.
 	for i := 0; i < 5; i++ {
-		_, err := db.Create(context.Background(), &CreateOptions{
+		_, err := db.Create(ctx, &CreateOptions{
 			Title: fmt.Sprintf("Record %d", i),
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to seed the database: %v", err)
 		}
 	}
 
-	t.Run("list all records w/o requester details", func(t *testing.T) {
+	t.Run("list all records", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{}, nil)
+		records, err := db.List(ctx, &ListOptions{})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
 
 		if len(records) < 1 {
 			t.Fatalf("expected at least 1 record, got %d", len(records))
-		}
-	})
-
-	t.Run("list all records w/ requester details", func(t *testing.T) {
-
-		records, err := db.List(context.Background(), &ListOptions{}, requester)
-		if err != nil {
-			t.Fatalf("failed to list records: %v", err)
-		}
-
-		if len(records) < 1 {
-			t.Fatalf("expected at least 1 record, got %d", len(records))
-		}
-	})
-
-	t.Run("list by UserID w/o requester details", func(t *testing.T) {
-
-		records, err := db.List(context.Background(), &ListOptions{
-			UserID: requester.ID,
-		}, nil)
-		if err != nil {
-			t.Fatalf("failed to list records: %v", err)
-		}
-
-		if len(records) != 5 {
-			t.Fatalf("expected at least 5 records, got %d", len(records))
 		}
 	})
 
 	t.Run("list w/ title filter", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{
+		records, err := db.List(ctx, &ListOptions{
 			Title: "Record 1",
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
@@ -181,9 +159,9 @@ func Test_Database_List(t *testing.T) {
 
 	t.Run("list w/ skip filter", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{
+		records, err := db.List(ctx, &ListOptions{
 			Skip: 2,
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
@@ -195,9 +173,9 @@ func Test_Database_List(t *testing.T) {
 
 	t.Run("list w/ limit filter", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{
+		records, err := db.List(ctx, &ListOptions{
 			Limit: 2,
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
@@ -209,9 +187,9 @@ func Test_Database_List(t *testing.T) {
 
 	t.Run("list w/ orderBy filter", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{
+		records, err := db.List(ctx, &ListOptions{
 			OrderBy: "title",
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
@@ -224,10 +202,10 @@ func Test_Database_List(t *testing.T) {
 
 	t.Run("list w/ orderBy and orderDirection filter", func(t *testing.T) {
 
-		records, err := db.List(context.Background(), &ListOptions{
+		records, err := db.List(ctx, &ListOptions{
 			OrderBy:        "title",
 			OrderDirection: "desc",
-		}, requester)
+		})
 		if err != nil {
 			t.Fatalf("failed to list records: %v", err)
 		}
@@ -253,17 +231,19 @@ func Test_Database_Get(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	requester := &Requester{
+	// Add requester details to the context.
+	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
 		ID: uuid.New(),
-	}
-	seed, err := db.Create(context.Background(), &options, requester)
+	})
+
+	seed, err := db.Create(ctx, &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
 	t.Run("get seed record", func(t *testing.T) {
 
-		record, err := db.Get(context.Background(), seed.ID, requester)
+		record, err := db.Get(ctx, seed.ID)
 		if err != nil {
 			t.Fatalf("failed to get record: %v", err)
 		}
@@ -289,11 +269,12 @@ func Test_Database_Update(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	requester := &Requester{
+	// Add requester details to the context.
+	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
 		ID: uuid.New(),
-	}
+	})
 
-	seed, err := db.Create(context.Background(), &options, requester)
+	seed, err := db.Create(ctx, &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
@@ -303,7 +284,7 @@ func Test_Database_Update(t *testing.T) {
 		options := UpdateOptions{
 			Title: "Updated Title",
 		}
-		updated, err := db.Update(context.Background(), seed.ID, &options, requester)
+		updated, err := db.Update(ctx, seed.ID, &options)
 		if err != nil {
 			t.Fatalf("failed to update record: %v", err)
 		}
@@ -329,22 +310,24 @@ func Test_Database_Delete(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	requester := &Requester{
+	// Add requester details to the context.
+	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
 		ID: uuid.New(),
-	}
-	seed, err := db.Create(context.Background(), &options, requester)
+	})
+
+	seed, err := db.Create(ctx, &options)
 	if err != nil {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
 	t.Run("delete seed record", func(t *testing.T) {
 
-		err := db.Delete(context.Background(), seed.ID, requester)
+		err := db.Delete(context.Background(), seed.ID)
 		if err != nil {
 			t.Fatalf("failed to delete record: %v", err)
 		}
 
-		_, err = db.Get(context.Background(), seed.ID, requester)
+		_, err = db.Get(context.Background(), seed.ID)
 		if err == nil {
 			t.Fatalf("expected record to be deleted, got nil")
 		}

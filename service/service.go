@@ -6,16 +6,17 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/commons"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/model"
 )
 
 type Service interface {
-	Create(context.Context, *CreateOptions, *Requester) (*model.Record, error)
-	List(context.Context, *ListOptions, *Requester) ([]*model.Record, error)
-	Get(context.Context, uuid.UUID, *Requester) (*model.Record, error)
-	Update(context.Context, uuid.UUID, *UpdateOptions, *Requester) (*model.Record, error)
-	Delete(context.Context, uuid.UUID, *Requester) error
+	Create(context.Context, *CreateOptions, *commons.Requester) (*model.Record, error)
+	List(context.Context, *ListOptions, *commons.Requester) ([]*model.Record, error)
+	Get(context.Context, uuid.UUID, *commons.Requester) (*model.Record, error)
+	Update(context.Context, uuid.UUID, *UpdateOptions, *commons.Requester) (*model.Record, error)
+	Delete(context.Context, uuid.UUID, *commons.Requester) error
 }
 
 type Config struct {
@@ -52,15 +53,13 @@ type service struct {
 	logger *slog.Logger
 }
 
-func (s *service) Create(ctx context.Context, options *CreateOptions, requester *Requester) (*model.Record, error) {
+func (s *service) Create(ctx context.Context, options *CreateOptions, requester *commons.Requester) (*model.Record, error) {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "creating a new record",
 		slog.String("function", "create"),
 	)
 	if options == nil {
 		return nil, ErrOptionsNotFound
 	}
-
-	// Validate options.
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
@@ -68,18 +67,16 @@ func (s *service) Create(ctx context.Context, options *CreateOptions, requester 
 	return s.db.Create(ctx, &db.CreateOptions{
 		Title:  options.Title,
 		UserID: options.UserID,
-	})
+	}, requester)
 }
 
-func (s *service) List(ctx context.Context, options *ListOptions, requester *Requester) ([]*model.Record, error) {
+func (s *service) List(ctx context.Context, options *ListOptions, requester *commons.Requester) ([]*model.Record, error) {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "listing all records",
 		slog.String("function", "list"),
 	)
 	if options == nil {
 		return nil, ErrOptionsNotFound
 	}
-
-	// Validate options.
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
@@ -90,20 +87,24 @@ func (s *service) List(ctx context.Context, options *ListOptions, requester *Req
 		Limit:          options.Limit,
 		OrderBy:        options.OrderBy,
 		OrderDirection: options.OrderDirection,
+	}, &db.Requester{
+		ID: requester.ID,
 	})
 }
 
-func (s *service) Get(ctx context.Context, ID uuid.UUID, requester *Requester) (*model.Record, error) {
+func (s *service) Get(ctx context.Context, ID uuid.UUID, requester *commons.Requester) (*model.Record, error) {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "retrieving a record",
 		slog.String("function", "get"),
 	)
 	if ID == uuid.Nil {
 		return nil, ErrOptionsNotFound
 	}
-	return s.db.Get(ctx, ID)
+	return s.db.Get(ctx, ID, &db.Requester{
+		ID: requester.ID,
+	})
 }
 
-func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptions, requester *Requester) (*model.Record, error) {
+func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptions, requester *commons.Requester) (*model.Record, error) {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "updating a record",
 		slog.String("function", "update"),
 	)
@@ -113,17 +114,24 @@ func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptio
 	if options == nil {
 		return nil, ErrOptionsNotFound
 	}
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
 	return s.db.Update(ctx, ID, &db.UpdateOptions{
 		Title: options.Title,
+	}, &db.Requester{
+		ID: requester.ID,
 	})
 }
 
-func (s *service) Delete(ctx context.Context, ID uuid.UUID, requester *Requester) error {
+func (s *service) Delete(ctx context.Context, ID uuid.UUID, requester *commons.Requester) error {
 	s.logger.LogAttrs(ctx, slog.LevelDebug, "deleting a record",
 		slog.String("function", "delete"),
 	)
 	if ID == uuid.Nil {
 		return ErrOptionsNotFound
 	}
-	return s.db.Delete(ctx, ID)
+	return s.db.Delete(ctx, ID, &db.Requester{
+		ID: requester.ID,
+	})
 }
