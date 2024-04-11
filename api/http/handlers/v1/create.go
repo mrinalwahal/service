@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -94,20 +93,17 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Load the context.
 	ctx := r.Context()
 
-	// [DEBUG] Log the user ID form context.
-	fmt.Println("User ID:", ctx.Value(middleware.XUserID))
-
 	// Load the claims from request context to pass them in the service method.
-	userID, ok := ctx.Value(middleware.XUserID).(uuid.UUID)
+	claims, ok := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if !ok {
 		handleErr(w, &Response{
 			Status:  http.StatusUnauthorized,
-			Message: "User ID not found in the request context.",
+			Message: "Failed to extract the claims from the request context.",
 			Err:     ErrInvalidUserID,
 		})
 		return
 	}
-	if userID == uuid.Nil {
+	if claims.UserID == uuid.Nil {
 		handleErr(w, &Response{
 			Status:  http.StatusUnauthorized,
 			Message: "User ID is invalid.",
@@ -115,7 +111,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	options.UserID = userID
+	options.UserID = claims.UserID
 
 	// Validate the request options.
 	if err := options.Validate(); err != nil {

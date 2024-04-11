@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 // Default HTTP Response structure.
@@ -76,4 +78,8 @@ func decode[T any](r *http.Request) (T, error) {
 		return v, fmt.Errorf("decode json: %w", err)
 	}
 	return v, nil
+}
+
+type JWTClaims struct {
+	UserID uuid.UUID `json:"user_id"`
 }

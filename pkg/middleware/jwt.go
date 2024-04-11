@@ -3,22 +3,20 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
 )
 
+// X-JWT-Claims is the key used to store the claims of the JWT in the context.
+//
+// The claims are used to store the information about the authenticated user.
+const XJWTClaims Key = "X-JWT-Claims"
+
 //	JWT is a middleware that can be used to validate the JWTs.
 //
 // Generate temporary JWTs for testing from here: https://oauth.tools/collection/1712706959493-UZt
 type JWTConfig struct {
-
-	// Logger is the `log/slog` instance that will be used to log messages.
-	// Default: `slog.DefaultLogger`
-	//
-	// This field is optional.
-	Logger *slog.Logger
 
 	// Prefix is the type of the JWT.
 	// Default: `Bearer`
@@ -70,9 +68,6 @@ type JWTConfig struct {
 func JWT(config *JWTConfig) Middleware {
 
 	// Set the default configuration.
-	if config.Logger == nil {
-		config.Logger = slog.Default()
-	}
 
 	if config.Prefix == "" {
 		config.Prefix = "Bearer"
@@ -88,7 +83,6 @@ func JWT(config *JWTConfig) Middleware {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			config.Logger = config.Logger.With("middleware", "JWT")
 
 			// Avoid the JWT validation for the exceptional routes.
 			for _, item := range config.ExceptionalRoutes {

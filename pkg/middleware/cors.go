@@ -2,18 +2,11 @@ package middleware
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 )
 
 type CORSConfig struct {
-
-	// Logger is the `log/slog` instance that will be used to log messages.
-	// Default: `slog.DefaultLogger`
-	//
-	// This field is optional.
-	Logger *slog.Logger
 
 	// AllowedOrigins is the list of origins that are allowed to access the resource.
 	// Default: `[]string{"*"}`

@@ -8,7 +8,7 @@ import (
 type RecoverConfig struct {
 
 	// Logger is the `log/slog` instance that will be used to log messages.
-	// Default: `slog.DefaultLogger`
+	// Default: nil
 	//
 	// This field is optional.
 	Logger *slog.Logger
@@ -26,10 +26,12 @@ func Recover(config *RecoverConfig) Middleware {
 						panic(err)
 					}
 
-					config.Logger.LogAttrs(r.Context(), slog.LevelError, "panic recovered", slog.Attr{
-						Key:   "error",
-						Value: slog.AnyValue(err),
-					})
+					if config.Logger != nil {
+						config.Logger.LogAttrs(r.Context(), slog.LevelError, "panic recovered", slog.Attr{
+							Key:   "panic error",
+							Value: slog.AnyValue(err),
+						})
+					}
 
 					if r.Header.Get("Connection") != "Upgrade" {
 						w.WriteHeader(http.StatusInternalServerError)
