@@ -95,7 +95,7 @@ func (h *DeleteHandler) validate(ctx context.Context, ID uuid.UUID) error {
 func (h *DeleteHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	if err := h.service.Delete(ctx, ID); err != nil {
+	if err := h.service.Delete(ctx, ID, &service.Requester{}); err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Failed to delete the record.",

@@ -54,7 +54,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", nil),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},
@@ -77,7 +77,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},
@@ -100,7 +100,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},

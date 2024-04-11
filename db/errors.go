@@ -3,6 +3,8 @@ package db
 import "fmt"
 
 var (
-	ErrInvalidUserID = fmt.Errorf("invalid UserID")
-	ErrEmptyTitle    = fmt.Errorf("empty title")
+	ErrInvalidOptions = fmt.Errorf("invalid options")
+	ErrInvalidUserID  = fmt.Errorf("invalid UserID")
+	ErrEmptyTitle     = fmt.Errorf("empty title")
+	ErrInvalidFilters = fmt.Errorf("invalid filters")
 )

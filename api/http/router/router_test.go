@@ -118,8 +118,9 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title:  "test",
-			UserID: uuid.New(),
+			Title: "test",
+		}, &service.Requester{
+			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -191,8 +192,9 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title:  "test",
-			UserID: uuid.New(),
+			Title: "test",
+		}, &service.Requester{
+			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -254,8 +256,9 @@ func Test_Router(t *testing.T) {
 
 		// Create a record.
 		record, err := config.service.Create(context.Background(), &service.CreateOptions{
-			Title:  "test",
-			UserID: uuid.New(),
+			Title: "test",
+		}, &service.Requester{
+			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -286,7 +289,9 @@ func Test_Router(t *testing.T) {
 		}
 
 		// Try to fetch the deleted record and ensure it doesn't exist.
-		_, err = config.service.Get(context.Background(), record.ID)
+		_, err = config.service.Get(context.Background(), record.ID, &service.Requester{
+			ID: uuid.New(),
+		})
 		if err == nil {
 			t.Fatal("expected to get an error, got nil")
 		}

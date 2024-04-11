@@ -47,8 +47,8 @@ func Test_Service_Create(t *testing.T) {
 
 	t.Run("create record with nil options", func(t *testing.T) {
 
-		_, err := s.Create(context.Background(), nil)
-		if err == nil || err != ErrInvalidArguments {
+		_, err := s.Create(context.Background(), nil, nil)
+		if err == nil || err != ErrOptionsNotFound {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
@@ -60,13 +60,13 @@ func Test_Service_Create(t *testing.T) {
 
 		_, err := s.Create(context.Background(), &CreateOptions{
 			Title: "",
-		})
+		}, nil)
 		if err == nil {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
-	t.Run("create record with title", func(t *testing.T) {
+	t.Run("create record with title but no requester details", func(t *testing.T) {
 
 		record := model.Record{
 			Title: "Test Record",
@@ -75,14 +75,11 @@ func Test_Service_Create(t *testing.T) {
 		// Set the expectation.
 		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&record, nil).Times(1)
 
-		got, err := s.Create(context.Background(), &CreateOptions{
+		_, err := s.Create(context.Background(), &CreateOptions{
 			Title: record.Title,
-		})
-		if err != nil {
-			t.Errorf("service.Create() error = %v, wantErr %v", err, false)
-		}
-		if got.Title != record.Title {
-			t.Errorf("service.Create() = %v, want %v", got.Title, record.Title)
+		}, nil)
+		if err == nil {
+			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
@@ -92,7 +89,7 @@ func Test_Service_Create(t *testing.T) {
 			Title: "Test Record",
 		}
 
-		// Set the expectation.
+		// Set the expectation at the database layer.
 		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
 			Base: model.Base{
 				ID: uuid.New(),
@@ -102,6 +99,8 @@ func Test_Service_Create(t *testing.T) {
 
 		got, err := s.Create(context.Background(), &CreateOptions{
 			Title: record.Title,
+		}, &Requester{
+			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, false)
@@ -178,7 +177,9 @@ func Test_Service_List(t *testing.T) {
 			// Set the expectation.
 			tt.expectation.Times(1)
 
-			got, err := s.List(tt.args.ctx, tt.args.options)
+			got, err := s.List(tt.args.ctx, tt.args.options, &Requester{
+				ID: uuid.New(),
+			})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("service.List() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -257,7 +258,9 @@ func Test_Service_Get(t *testing.T) {
 			// Set the expectation.
 			tt.expectation.Times(1)
 
-			got, err := s.Get(tt.args.ctx, tt.args.ID)
+			got, err := s.Get(tt.args.ctx, tt.args.ID, &Requester{
+				ID: uuid.New(),
+			})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("service.List() error = %v, wantErr %v", err, tt.wantErr)
 				return

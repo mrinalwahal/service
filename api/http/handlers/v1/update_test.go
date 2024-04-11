@@ -65,7 +65,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}).Return(&model.Record{
+			}, gomock.Any()).Return(&model.Record{
 				Title: "Updated Title",
 			}, nil),
 			wantStatus: http.StatusOK,
@@ -83,7 +83,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}).Return(&model.Record{
+			}, gomock.Any()).Return(&model.Record{
 				Title: "Wrong Title",
 			}, nil),
 			validation: func(r *Response) error {

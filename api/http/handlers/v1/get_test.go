@@ -61,7 +61,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 					return req
 				}(),
 			},
-			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
+			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&model.Record{
 				Base: model.Base{
 					ID: recordID,
 				},

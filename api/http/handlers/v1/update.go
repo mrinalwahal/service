@@ -109,7 +109,7 @@ func (h *UpdateHandler) process(ctx context.Context, ID uuid.UUID, options *Upda
 	// Call the service method that performs the required operation.
 	record, err := h.service.Update(ctx, ID, &service.UpdateOptions{
 		Title: options.Title,
-	})
+	}, &service.Requester{})
 	if err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,

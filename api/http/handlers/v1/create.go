@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 )
 
@@ -16,8 +14,8 @@ type CreateOptions struct {
 	//	Title of the record.
 	Title string `json:"title"`
 
-	// UserID extracted from the request context.
-	UserID uuid.UUID `json:"-"`
+	// Details of the user who sent the request.
+	requester *Requester
 }
 
 // Validate the options.
@@ -26,6 +24,13 @@ func (o *CreateOptions) Validate() error {
 		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Title is required.",
+			Err:     ErrInvalidRequestOptions,
+		}
+	}
+	if o.requester == nil {
+		return &Response{
+			Status:  http.StatusBadRequest,
+			Message: "Requester details not found.",
 			Err:     ErrInvalidRequestOptions,
 		}
 	}
@@ -93,34 +98,22 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Load the context.
 	ctx := r.Context()
 
-	// Load the claims from request context to pass them in the service method.
-	claims, ok := ctx.Value(middleware.XJWTClaims).(JWTClaims)
-	if !ok {
-		handleErr(w, &Response{
-			Status:  http.StatusUnauthorized,
-			Message: "Failed to extract the claims from the request context.",
-			Err:     ErrInvalidUserID,
+	// Get the JWT claims.
+	claims, err := getClaims(ctx)
+	if err != nil {
+		write(w, http.StatusUnauthorized, &Response{
+			Message: "Failed to either extract or validate claims in the JWT.",
+			Err:     err,
 		})
 		return
 	}
-	if claims.UserID == uuid.Nil {
-		handleErr(w, &Response{
-			Status:  http.StatusUnauthorized,
-			Message: "User ID is invalid.",
-			Err:     ErrInvalidUserID,
-		})
-		return
+
+	options.requester = &Requester{
+		ID: claims.UserID,
 	}
-	options.UserID = claims.UserID
 
 	// Validate the request options.
 	if err := options.Validate(); err != nil {
-		handleErr(w, err)
-		return
-	}
-
-	// Validate the request.
-	if err := h.validate(ctx, &options); err != nil {
 		handleErr(w, err)
 		return
 	}
@@ -131,19 +124,14 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// validate function ascertains that the requester is authorized to perform this request.
-// This is where the "API rule/condition" logic is applied.
-func (h *CreateHandler) validate(ctx context.Context, options *CreateOptions) error {
-	return nil
-}
-
 // process applies the fundamental business logic to complete required operation.
 func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) error {
 
 	// Call the service method that performs the required operation.
 	record, err := h.service.Create(ctx, &service.CreateOptions{
-		Title:  options.Title,
-		UserID: options.UserID,
+		Title: options.Title,
+	}, &service.Requester{
+		ID: options.requester.ID,
 	})
 	if err != nil {
 		return &Response{

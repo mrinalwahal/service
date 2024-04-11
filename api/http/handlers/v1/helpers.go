@@ -1,12 +1,14 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/pkg/middleware"
 )
 
 // Default HTTP Response structure.
@@ -82,4 +84,32 @@ func decode[T any](r *http.Request) (T, error) {
 
 type JWTClaims struct {
 	UserID uuid.UUID `json:"user_id"`
+}
+
+// Validate the JWT Claims.
+func (c *JWTClaims) Validate() error {
+	if c.UserID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+	return nil
+}
+
+// Requester is the structure that holds the information of the user who sent the request.
+type Requester struct {
+	ID uuid.UUID
+}
+
+func getClaims(ctx context.Context) (*JWTClaims, error) {
+
+	// Load the claims from request context to pass them in the service method.
+	claims, ok := ctx.Value(middleware.XJWTClaims).(JWTClaims)
+	if !ok {
+		return nil, ErrInvalidJWTClaims
+	}
+	// Validate the claims.
+	if err := claims.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &claims, nil
 }

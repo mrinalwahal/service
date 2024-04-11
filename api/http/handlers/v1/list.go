@@ -114,7 +114,7 @@ func (h *ListHandler) process(ctx context.Context, options *ListOptions) error {
 	// Call the service method that performs the required operation.
 	records, err := h.service.List(ctx, &service.ListOptions{
 		Title: options.Title,
-	})
+	}, &service.Requester{})
 	if err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,
