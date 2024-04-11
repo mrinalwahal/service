@@ -116,10 +116,21 @@ func main() {
 		middleware.TraceID,
 		middleware.CorrelationID,
 		// TODO: middleware.RateLimit,
-		middleware.CORS,
-		middleware.Recover(middlewareLogger),
-		middleware.Logging(middlewareLogger),
-		middleware.JWT(middlewareLogger),
+		middleware.CORS(&middleware.CORSConfig{}),
+		middleware.Recover(&middleware.RecoverConfig{
+			Logger: middlewareLogger,
+		}),
+		middleware.Logging(&middleware.LoggingConfig{
+			Logger: middlewareLogger,
+		}),
+		middleware.JWT(&middleware.JWTConfig{
+			Logger: middlewareLogger,
+			Key:    os.Getenv("JWT_SECRET"),
+			ExceptionalRoutes: []string{
+				"/login",
+				"/healthz",
+			},
+		}),
 	)
 
 	// Prepare the base router.

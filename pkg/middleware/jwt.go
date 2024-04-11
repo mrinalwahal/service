@@ -9,41 +9,110 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-/*
-	Generate temporary JWTs for testing from here: https://oauth.tools/collection/1712706959493-UZt
-*/
+//	JWT is a middleware that can be used to validate the JWTs.
+//
+// Generate temporary JWTs for testing from here: https://oauth.tools/collection/1712706959493-UZt
+type JWTConfig struct {
 
-const XUserID = "X-User-ID"
+	// Logger is the `log/slog` instance that will be used to log messages.
+	// Default: `slog.DefaultLogger`
+	//
+	// This field is optional.
+	Logger *slog.Logger
 
-// JWT is a middleware that authenticates the incoming request.
-// This middleware parses the claims form the incoming JWT in the `Authorization` header and writes them to the request context.
-// If the request is not authenticated, it returns a 401 Unauthorized response.
-// If the request is authenticated, it calls the next handler in the chain.
-func JWT(log *slog.Logger) func(next http.Handler) http.Handler {
+	// Prefix is the type of the JWT.
+	// Default: `Bearer`
+	//
+	// This field is optional.
+	Prefix string
+
+	// Algorithm is the algorithm of the key that will be used to validate the JWT.
+	// Default: `HS256`
+	//
+	// This field is optional.
+	Algorithm string
+
+	// Issuer is the issuer of the JWT.
+	// Default: ``
+	//
+	// This field is optional.
+	Issuer string
+
+	// Audience is the audience of the JWT.
+	// Default: ``
+	//
+	// This field is optional.
+	Audience string
+
+	// Key is the secret key that will be used to validate the JWT.
+	//
+	// This field is mandatory.
+	Key string
+
+	// ExceptionalRoutes is the list of routes that will be excluded from the JWT validation.
+	// For example, you can exclude the login route from the JWT validation.
+	//
+	// Example: []string{
+	// 		"/login"
+	// 		"/healthz"
+	//	}
+	//
+	// This field is optional.
+	ExceptionalRoutes []string
+
+	// Header is the request header that will be used to extract the JWT from.
+	// Default: `Authorization`
+	//
+	// This field is optional.
+	Header string
+}
+
+func JWT(config *JWTConfig) Middleware {
+
+	// Set the default configuration.
+	if config.Logger == nil {
+		config.Logger = slog.Default()
+	}
+
+	if config.Prefix == "" {
+		config.Prefix = "Bearer"
+	}
+
+	if config.Algorithm == "" {
+		config.Algorithm = "HS256"
+	}
+
+	if config.Header == "" {
+		config.Header = "Authorization"
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			config.Logger = config.Logger.With("middleware", "JWT")
 
-			// Register exceptional routes.
-			if r.URL.Path == "/health" ||
-				r.URL.Path == "/metrics" ||
-				r.URL.Path == "/signin" {
-				next.ServeHTTP(w, r)
-				return
+			// Avoid the JWT validation for the exceptional routes.
+			for _, item := range config.ExceptionalRoutes {
+				if r.URL.Path == item {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 
-			// Extract the JWT from the `Authorization` header.
-			header := r.Header.Get("Authorization")
+			// Extract the JWT from the appropriate header.
+			header := r.Header.Get(config.Header)
 			if header == "" {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				http.Error(w, "failed to extract the JWT from appropriate header", http.StatusUnauthorized)
 				return
 			}
 
-			// Remove the `Bearer ` prefix from the JWT.
-			header = header[7:]
+			// Remove the prefix from the JWT.
+			if len(header) > len(config.Prefix) && header[:len(config.Prefix)] == config.Prefix {
+				header = header[len(config.Prefix):]
+			}
 
 			// Parse the JWT and extract the claims.
 			token, err := jwt.Parse(header, func(token *jwt.Token) (interface{}, error) {
-				return []byte("secret"), nil
+				return []byte(config.Key), nil
 			})
 
 			if err != nil {
@@ -63,16 +132,9 @@ func JWT(log *slog.Logger) func(next http.Handler) http.Handler {
 				return
 			}
 
-			// Extract the user ID from the claims.
-			userID, ok := claims["sub"].(string)
-			if !ok {
-				http.Error(w, "failed to parse the user ID", http.StatusUnauthorized)
-				return
-			}
-
-			// Write the user_id to the request context.
+			// Write the claims to the request context.
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, XUserID, userID)
+			ctx = context.WithValue(ctx, XJWTClaims, claims)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)

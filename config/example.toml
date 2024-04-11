@@ -6,6 +6,10 @@ env = dev
 engine = postgres
 dsn = "host=127.0.0.1 user=postgres password=postgres dbname=records port=5432 sslmode=disable TimeZone=Asia/Kolkata"
 
+[authentication]
+method = jwt
+
+
 [cache]
 engine = redis
 host = redis

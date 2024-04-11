@@ -5,7 +5,17 @@ import (
 	"net/http"
 )
 
-func Recover(log *slog.Logger) func(next http.Handler) http.Handler {
+type RecoverConfig struct {
+
+	// Logger is the `log/slog` instance that will be used to log messages.
+	// Default: `slog.DefaultLogger`
+	//
+	// This field is optional.
+	Logger *slog.Logger
+}
+
+// Recover is a middleware that recovers from the panics.
+func Recover(config *RecoverConfig) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -16,7 +26,7 @@ func Recover(log *slog.Logger) func(next http.Handler) http.Handler {
 						panic(err)
 					}
 
-					log.LogAttrs(r.Context(), slog.LevelError, "panic recovered", slog.Attr{
+					config.Logger.LogAttrs(r.Context(), slog.LevelError, "panic recovered", slog.Attr{
 						Key:   "error",
 						Value: slog.AnyValue(err),
 					})

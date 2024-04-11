@@ -9,10 +9,36 @@ import (
 	"github.com/mrinalwahal/service/pkg/writer"
 )
 
-func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
+type LoggingConfig struct {
+
+	// Logger is the `log/slog` instance that will be used to log messages.
+	// Default: `slog.DefaultLogger`
+	//
+	// This field is optional.
+	Logger *slog.Logger
+
+	// LogLatency is the flag that determines if the latency of the request should be logged.
+	// Latency is calculated as the difference between the time the request is received and the time the response is sent.
+	// Default: `false`
+	//
+	// This field is optional.
+	LogLatency bool
+
+	// LogError is the flag that determines if the response status is 5xx then the error message should be logged.
+	// Default: `false`
+	//
+	// This field is optional.
+	LogError bool
+}
+
+func Logging(config *LoggingConfig) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
+
+			var start time.Time
+			if config.LogLatency {
+				start = time.Now()
+			}
 
 			//
 			// If you want to run some code before the request is handled, you can do it here.
@@ -32,22 +58,24 @@ func Logging(log *slog.Logger) func(next http.Handler) http.Handler {
 				{Key: "timestamp", Value: slog.StringValue(start.String())},
 				{Key: "request_id", Value: slog.StringValue(r.Context().Value(XRequestID).(string))},
 				{Key: "status", Value: slog.IntValue(writer.Status())},
-				{Key: "latency", Value: slog.DurationValue(time.Since(start))},
 				{Key: "hostname", Value: slog.StringValue(r.Host)},
 				{Key: "method", Value: slog.StringValue(r.Method)},
 				{Key: "path", Value: slog.StringValue(r.URL.Path)},
 			}
 
+			if config.LogLatency {
+				attributes = append(attributes, slog.Attr{Key: "latency", Value: slog.DurationValue(time.Since(start))})
+			}
+
 			// If the response status code is 5xx, log the error message.
-			if writer.Status() >= 500 {
+			if writer.Status() >= 500 && config.LogError {
 
 				// Parse the response data.
 				// attributes = append(attributes, slog.Attr{Key: "error", Value: slog.StringValue(writer.Error())})
 
 			} else {
-				log.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("incoming %s request to %s", r.Method, r.URL.Path), attributes...)
+				config.Logger.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("incoming %s request to %s", r.Method, r.URL.Path), attributes...)
 			}
-
 		})
 	}
 }
