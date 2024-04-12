@@ -65,7 +65,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 				Base: model.Base{
 					ID: recordID,
 				},
-				Title: "model.Record 1",
+				Title: "Record 1",
 			}, nil),
 			validation: func(res *Response) error {
 				if res.Data == nil {

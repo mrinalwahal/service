@@ -1,18 +1,43 @@
 package db
 
-import "github.com/google/uuid"
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/pkg/middleware"
+)
 
 type JWTClaims struct {
 	XUserID uuid.UUID `json:"x-user-id"`
 }
 
-// Validate the JWT Claims.
-func (c *JWTClaims) Validate() error {
-	if c.XUserID == uuid.Nil {
-		return ErrInvalidUserID
+// // validate the JWT Claims.
+// func (c *JWTClaims) validate() error {
+// 	if c.XUserID == uuid.Nil {
+// 		return ErrInvalidUserID
+// 	}
+// 	return nil
+// }
+
+func getClaims(ctx context.Context) (*JWTClaims, error) {
+	claims, exists := ctx.Value(middleware.XJWTClaims).(jwt.MapClaims)
+	if !exists {
+		return nil, nil
 	}
-	return nil
+	m, err := json.Marshal(claims)
+	if err != nil {
+		return nil, err
+	}
+	var jwtClaims JWTClaims
+	if err := json.Unmarshal(m, &jwtClaims); err != nil {
+		return nil, err
+	}
+	return &jwtClaims, nil
 }
+
+const XUserID = "x-user-id"
 
 const XRequestingUser = "X-Requesting-User"
 

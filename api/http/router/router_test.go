@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	v1 "github.com/mrinalwahal/service/api/http/handlers/v1"
 	"github.com/mrinalwahal/service/db"
@@ -58,7 +59,7 @@ func configure(t *testing.T) *testconfig {
 	})
 
 	// Initialize the database layer.
-	db := db.NewDB(&db.Config{
+	db := db.NewSQLDB(&db.SQLDBConfig{
 		DB: conn,
 	})
 
@@ -89,14 +90,15 @@ func Test_Router(t *testing.T) {
 			t.Fatalf("failed to marshal the dummy body for request: %v", err)
 		}
 
-		// Prepare the request and response recorder.
-		request := httptest.NewRequest(http.MethodPost, "/v1", bytes.NewBuffer(body))
-		recorder := httptest.NewRecorder()
+		// Prepare the r and response recorder.
+		r := httptest.NewRequest(http.MethodPost, "/v1", bytes.NewBuffer(body))
+		w := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.XJWTClaims, v1.JWTClaims{
-			UserID: uuid.New(),
-		}))
+		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
+			"x-user-id": uuid.New(),
+		})
+		r = r.WithContext(ctx)
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -105,35 +107,34 @@ func Test_Router(t *testing.T) {
 		})
 
 		// Serve the request.
-		router.ServeHTTP(recorder, request)
+		router.ServeHTTP(w, r)
 
 		// Check the response status code.
-		if recorder.Code != http.StatusCreated {
-			t.Logf("got response body = %v", recorder.Body.String())
-			t.Fatalf("expected status code %d, got %d", http.StatusCreated, recorder.Code)
+		if w.Code != http.StatusCreated {
+			t.Logf("got response body = %v", w.Body.String())
+			t.Fatalf("expected status code %d, got %d", http.StatusCreated, w.Code)
 		}
 	})
 
 	t.Run("request to get record w/ valid id", func(t *testing.T) {
 
+		claims := jwt.MapClaims{
+			"x-user-id": uuid.New(),
+		}
+
 		// Create a record.
-		record, err := config.service.Create(context.Background(), &service.CreateOptions{
+		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
 			Title: "test",
-		}, &service.Requester{
-			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
 		}
 
-		// Prepare the request and response recorder.
-		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s", record.ID), nil)
-		recorder := httptest.NewRecorder()
+		// Prepare the r and response recorder.
+		r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s", record.ID), nil)
+		w := httptest.NewRecorder()
 
-		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.XJWTClaims, v1.JWTClaims{
-			UserID: uuid.New(),
-		}))
+		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, claims))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -142,25 +143,25 @@ func Test_Router(t *testing.T) {
 		})
 
 		// Serve the request.
-		router.ServeHTTP(recorder, request)
+		router.ServeHTTP(w, r)
 
 		// Check the response status code.
-		if recorder.Code != http.StatusOK {
-			t.Logf("got response body = %v", recorder.Body.String())
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, recorder.Code)
+		if w.Code != http.StatusOK {
+			t.Logf("got response body = %v", w.Body.String())
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, w.Code)
 		}
 	})
 
 	t.Run("request to list records", func(t *testing.T) {
 
-		// Prepare the request and response recorder.
-		request := httptest.NewRequest(http.MethodGet, "/v1", nil)
-		recorder := httptest.NewRecorder()
+		// Prepare the r and response recorder.
+		r := httptest.NewRequest(http.MethodGet, "/v1", nil)
+		w := httptest.NewRecorder()
 
-		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.XJWTClaims, v1.JWTClaims{
-			UserID: uuid.New(),
-		}))
+		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
+			"x-user-id": uuid.New(),
+		})
+		r = r.WithContext(ctx)
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -169,17 +170,17 @@ func Test_Router(t *testing.T) {
 		})
 
 		// Serve the request.
-		router.ServeHTTP(recorder, request)
+		router.ServeHTTP(w, r)
 
 		// Check the response status code.
-		if recorder.Code != http.StatusOK {
-			t.Logf("got response body = %v", recorder.Body.String())
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, recorder.Code)
+		if w.Code != http.StatusOK {
+			t.Logf("got response body = %v", w.Body.String())
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, w.Code)
 		}
 
 		// Check that the returned data in the response is a JSON array.
 		var response v1.Response
-		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("failed to unmarshal the response body: %v", err)
 		}
 
@@ -190,11 +191,13 @@ func Test_Router(t *testing.T) {
 
 	t.Run("request to update record w/ valid id", func(t *testing.T) {
 
+		claims := jwt.MapClaims{
+			"x-user-id": uuid.New(),
+		}
+
 		// Create a record.
-		record, err := config.service.Create(context.Background(), &service.CreateOptions{
+		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
 			Title: "test",
-		}, &service.Requester{
-			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -208,14 +211,11 @@ func Test_Router(t *testing.T) {
 			t.Fatalf("failed to marshal the dummy body for request: %v", err)
 		}
 
-		// Prepare the request and response recorder.
-		request := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/v1/%s", record.ID), bytes.NewBuffer(body))
-		recorder := httptest.NewRecorder()
+		// Prepare the r and response recorder.
+		r := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/v1/%s", record.ID), bytes.NewBuffer(body))
+		w := httptest.NewRecorder()
 
-		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.XJWTClaims, v1.JWTClaims{
-			UserID: uuid.New(),
-		}))
+		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, claims))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -224,17 +224,17 @@ func Test_Router(t *testing.T) {
 		})
 
 		// Serve the request.
-		router.ServeHTTP(recorder, request)
+		router.ServeHTTP(w, r)
 
 		// Check the response status code.
-		if recorder.Code != http.StatusOK {
-			t.Logf("got response body = %v", recorder.Body.String())
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, recorder.Code)
+		if w.Code != http.StatusOK {
+			t.Logf("got response body = %v", w.Body.String())
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, w.Code)
 		}
 
 		// Validate the title of the updated record.
 		var response v1.Response
-		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 			t.Fatalf("failed to unmarshal the response body: %v", err)
 		}
 
@@ -254,24 +254,24 @@ func Test_Router(t *testing.T) {
 
 	t.Run("request to delete record w/ valid id", func(t *testing.T) {
 
+		claims := jwt.MapClaims{
+			"x-user-id": uuid.New(),
+		}
+
 		// Create a record.
-		record, err := config.service.Create(context.Background(), &service.CreateOptions{
+		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
 			Title: "test",
-		}, &service.Requester{
-			ID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
 		}
 
-		// Prepare the request and response recorder.
-		request := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/%s", record.ID), nil)
-		recorder := httptest.NewRecorder()
+		// Prepare the r and response recorder.
+		r := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/%s", record.ID), nil)
+		w := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		request = request.WithContext(context.WithValue(request.Context(), middleware.XJWTClaims, v1.JWTClaims{
-			UserID: uuid.New(),
-		}))
+		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, claims))
 
 		// Prepare the router.
 		router := NewHTTPRouter(&HTTPRouterConfig{
@@ -280,18 +280,16 @@ func Test_Router(t *testing.T) {
 		})
 
 		// Serve the request.
-		router.ServeHTTP(recorder, request)
+		router.ServeHTTP(w, r)
 
 		// Check the response status code.
-		if recorder.Code != http.StatusOK {
-			t.Logf("got response body = %v", recorder.Body.String())
-			t.Fatalf("expected status code %d, got %d", http.StatusOK, recorder.Code)
+		if w.Code != http.StatusOK {
+			t.Logf("got response body = %v", w.Body.String())
+			t.Fatalf("expected status code %d, got %d", http.StatusOK, w.Code)
 		}
 
 		// Try to fetch the deleted record and ensure it doesn't exist.
-		_, err = config.service.Get(context.Background(), record.ID, &service.Requester{
-			ID: uuid.New(),
-		})
+		_, err = config.service.Get(context.Background(), record.ID)
 		if err == nil {
 			t.Fatal("expected to get an error, got nil")
 		}

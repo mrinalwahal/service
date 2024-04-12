@@ -4,13 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/google/uuid"
 )
-
-type JWTClaims struct {
-	XUserID uuid.UUID `json:"x-user-id"`
-}
 
 // Default HTTP Response structure.
 // This structure implements the `error` interface.

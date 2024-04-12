@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/pkg/middleware"
@@ -116,10 +117,10 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Set the JWT claims in the request context.
-		claims := JWTClaims{
-			XUserID: uuid.New(),
-		}
-		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, claims))
+		id := uuid.New()
+		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
+			"x-user-id": id,
+		}))
 
 		// The service layer should ideally return a record.
 		config.service.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
@@ -127,7 +128,7 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 				ID: uuid.New(),
 			},
 			Title:  options.Title,
-			UserID: claims.XUserID,
+			UserID: id,
 		}, nil)
 
 		// Serve the request.

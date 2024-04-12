@@ -74,7 +74,7 @@ func main() {
 	sqlDB.SetMaxIdleConns(10)
 
 	// Connect the database layer.
-	db := db.NewDB(&db.Config{
+	db := db.NewSQLDB(&db.SQLDBConfig{
 		DB: conn,
 	})
 
