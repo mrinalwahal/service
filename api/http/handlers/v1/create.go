@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
@@ -18,11 +17,7 @@ type CreateOptions struct {
 // Validate the options.
 func (o *CreateOptions) Validate() error {
 	if o.Title == "" {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Title is required.",
-			Err:     ErrInvalidRequestOptions,
-		}
+		return ErrInvalidRequestOptions
 	}
 	return nil
 }
@@ -75,13 +70,6 @@ func NewCreateHandler(config *CreateHandlerConfig) Handler {
 // ServeHTTP handles the incoming HTTP request.
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	// Prepare the context.
-	ctx, err := getctx(r)
-	if err != nil {
-		handleErr(w, err)
-		return
-	}
-
 	// Decode the request options.
 	options, err := decode[CreateOptions](r)
 	if err != nil {
@@ -94,34 +82,27 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the request options.
 	if err := options.Validate(); err != nil {
-		handleErr(w, err)
+		write(w, http.StatusBadRequest, Response{
+			Message: "Failed validate request options.",
+			Err:     ErrInvalidRequestOptions,
+		})
 		return
 	}
 
-	// Call the function.
-	if err := h.process(ctx, &options); err != nil {
-		handleErr(w, err)
-	}
-}
-
-// process applies the fundamental business logic to complete required operation.
-func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) error {
-
 	// Call the service method that performs the required operation.
-	record, err := h.service.Create(ctx, &service.CreateOptions{
+	record, err := h.service.Create(r.Context(), &service.CreateOptions{
 		Title: options.Title,
 	})
 	if err != nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
+		write(w, http.StatusBadRequest, Response{
 			Message: "Failed to create the record.",
 			Err:     err,
-		}
+		})
+		return
 	}
 
-	return &Response{
-		Status:  http.StatusCreated,
+	write(w, http.StatusCreated, Response{
 		Message: "The record was created successfully.",
 		Data:    record,
-	}
+	})
 }

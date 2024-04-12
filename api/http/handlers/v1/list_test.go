@@ -15,7 +15,7 @@ import (
 func TestListHandler_ServeHTTP(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	type args struct {
 		w http.ResponseWriter
@@ -54,7 +54,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", nil),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},
@@ -77,7 +77,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},
@@ -100,7 +100,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
 					Title: "model.Record 1",
 				},
@@ -126,7 +126,7 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &ListHandler{
 				service: environment.service,
-				log:     environment.logger,
+				log:     environment.log,
 			}
 
 			// Set the expectation.

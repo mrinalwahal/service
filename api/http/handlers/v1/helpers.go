@@ -1,15 +1,16 @@
 package v1
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/pkg/middleware"
 )
+
+type JWTClaims struct {
+	XUserID uuid.UUID `json:"x-user-id"`
+}
 
 // Default HTTP Response structure.
 // This structure implements the `error` interface.
@@ -47,29 +48,27 @@ func (r Response) MarshalJSON() ([]byte, error) {
 	return json.Marshal(structure)
 }
 
-func handleErr(w http.ResponseWriter, err error) {
-
-	// Run type assertion on the response to check if it is of type `response`.
-	// If it is, then write the response as JSON.
-	// If it is not, then wrap the error in a new `Response` structure with defaults.
-	if response, ok := err.(*Response); ok {
-		if err := write(w, response.Status, response); err != nil {
-			log.Println("failed to write response:", err)
-		}
-		return
+func (r *Response) UnmarshalJSON(data []byte) error {
+	var structure = struct {
+		Data    interface{} `json:"data,omitempty"`
+		Message string      `json:"message,omitempty"`
+		Err     string      `json:"error,omitempty"`
+	}{}
+	if err := json.Unmarshal(data, &structure); err != nil {
+		return err
 	}
-	if err := write(w, http.StatusInternalServerError, &Response{
-		Message: "Your broke something on our server :(",
-		Err:     err,
-	}); err != nil {
-		log.Println("failed to write response:", err)
+	r.Data = structure.Data
+	r.Message = structure.Message
+	if structure.Err != "" {
+		r.Err = fmt.Errorf(structure.Err)
 	}
+	return nil
 }
 
 // write writes the data to the supplied http response writer.
 func write(w http.ResponseWriter, status int, response any) error {
 	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(response)
+	return encode(w, response)
 }
 
 // decode decodes the request body into the supplied type.
@@ -82,44 +81,7 @@ func decode[T any](r *http.Request) (T, error) {
 	return v, nil
 }
 
-// Requester is the structure that holds the information of the user who sent the request.
-type Requester struct {
-	ID uuid.UUID `json:"id"`
-}
-
-func (r *Requester) Validate() error {
-	if r.ID == uuid.Nil {
-		return ErrInvalidUserID
-	}
-	return nil
-}
-
-type ContextKey string
-
-const XRequestingUser ContextKey = "X-Requesting-User"
-
-func getctx(r *http.Request) (context.Context, error) {
-
-	// Load the context.
-	ctx := r.Context()
-
-	// Get the JWT claims.
-	claims, ok := ctx.Value(middleware.XJWTClaims).(JWTClaims)
-	if !ok {
-		return nil, ErrInvalidJWTClaims
-	}
-	// Validate the claims.
-	if err := claims.Validate(); err != nil {
-		return nil, err
-	}
-
-	// Convert the claims to requester details.
-	requester := Requester{
-		ID: claims.UserID,
-	}
-
-	// Set the requester in the context.
-	ctx = context.WithValue(ctx, XRequestingUser, requester)
-
-	return ctx, nil
+// encode encodes the supplied data into the response writer.
+func encode(w http.ResponseWriter, data any) error {
+	return json.NewEncoder(w).Encode(data)
 }

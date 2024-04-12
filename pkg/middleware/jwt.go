@@ -8,10 +8,10 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-// X-JWT-Claims is the key used to store the claims of the JWT in the context.
+// XJWTClaims is the key used to store the claims of the JWT in the context.
 //
 // The claims are used to store the information about the authenticated user.
-const XJWTClaims Key = "X-JWT-Claims"
+const XJWTClaims Key = "x-jwt-claims"
 
 //	JWT is a middleware that can be used to validate the JWTs.
 //
@@ -67,10 +67,18 @@ type JWTConfig struct {
 
 func JWT(config *JWTConfig) Middleware {
 
-	// Set the default configuration.
+	// Validate the configuration.
 	if config == nil {
-		config = &JWTConfig{}
+		panic("failed to initialize the JWT middleware: missing configuration")
 	}
+
+	if config.Key == "" {
+		panic("failed to initialize the JWT middleware: missing key")
+	}
+
+	//
+	// Set default values.
+	//
 
 	if config.Prefix == "" {
 		config.Prefix = "Bearer"

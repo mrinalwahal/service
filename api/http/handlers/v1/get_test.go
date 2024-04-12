@@ -15,7 +15,7 @@ import (
 func TestGetHandler_ServeHTTP(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Test UUID of the record.
 	recordID := uuid.New()
@@ -61,7 +61,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 					return req
 				}(),
 			},
-			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(&model.Record{
+			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
 				Base: model.Base{
 					ID: recordID,
 				},
@@ -81,7 +81,7 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &GetHandler{
 				service: environment.service,
-				log:     environment.logger,
+				log:     environment.log,
 			}
 
 			// Set the expectation.

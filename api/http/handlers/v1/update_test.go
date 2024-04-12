@@ -17,7 +17,7 @@ import (
 func TestUpdateHandler_ServeHTTP(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Test UUID of the record.
 	recordID := uuid.New()
@@ -65,7 +65,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}, gomock.Any()).Return(&model.Record{
+			}).Return(&model.Record{
 				Title: "Updated Title",
 			}, nil),
 			wantStatus: http.StatusOK,
@@ -83,7 +83,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			},
 			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
 				Title: "Updated Title",
-			}, gomock.Any()).Return(&model.Record{
+			}).Return(&model.Record{
 				Title: "Wrong Title",
 			}, nil),
 			validation: func(r *Response) error {
@@ -100,7 +100,7 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &UpdateHandler{
 				service: environment.service,
-				log:     environment.logger,
+				log:     environment.log,
 			}
 
 			// Set the expectation.
