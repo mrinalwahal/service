@@ -14,8 +14,8 @@ import (
 
 func TestListHandler_ServeHTTP(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	type args struct {
 		w http.ResponseWriter
@@ -54,9 +54,9 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", nil),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: config.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "model.Record 1",
+					Title: "Record 1",
 				},
 			}, nil),
 			validation: func(r *Response) error {
@@ -77,9 +77,9 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: config.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "model.Record 1",
+					Title: "Record 1",
 				},
 			}, nil),
 			validation: func(r *Response) error {
@@ -100,12 +100,12 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "/", bytes.NewBufferString(`{"limit":1}`)),
 			},
-			expectation: environment.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
+			expectation: config.service.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
 				{
-					Title: "model.Record 1",
+					Title: "Record 1",
 				},
 				{
-					Title: "model.Record 2",
+					Title: "Record 2",
 				},
 			}, nil),
 			validation: func(r *Response) error {
@@ -125,8 +125,8 @@ func TestListHandler_ServeHTTP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &ListHandler{
-				service: environment.service,
-				log:     environment.log,
+				service: config.service,
+				log:     config.log,
 			}
 
 			// Set the expectation.
