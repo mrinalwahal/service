@@ -2,12 +2,24 @@ package db
 
 import "github.com/google/uuid"
 
+type JWTClaims struct {
+	XUserID uuid.UUID `json:"x-user-id"`
+}
+
+// Validate the JWT Claims.
+func (c *JWTClaims) Validate() error {
+	if c.XUserID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+	return nil
+}
+
 const XRequestingUser = "X-Requesting-User"
 
 // Requester is the structure that holds the information of the user who sent the request.
-type Requester struct {
-	ID uuid.UUID `json:"id"`
-}
+// type Requester struct {
+// 	ID uuid.UUID `json:"id"`
+// }
 
 // CreateOptions holds the options for creating a new record.
 type CreateOptions struct {

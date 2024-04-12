@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -68,7 +69,7 @@ func Test_Database_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("create record with options w/o requester", func(t *testing.T) {
+	t.Run("create record with options w/o JWT claims", func(t *testing.T) {
 
 		options := &CreateOptions{
 			Title: "Test Record",
@@ -80,15 +81,15 @@ func Test_Database_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("create record with options and requester", func(t *testing.T) {
+	t.Run("create record with options w/ JWT claims", func(t *testing.T) {
 
 		options := &CreateOptions{
 			Title: "Test Record",
 		}
 
-		// Add requester details to the context.
-		ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
-			ID: uuid.New(),
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, JWTClaims{
+			XUserID: uuid.New(),
 		})
 		record, err := db.Create(ctx, options)
 		if err != nil {
@@ -116,9 +117,9 @@ func Test_Database_List(t *testing.T) {
 		conn: environment.conn,
 	}
 
-	// Add requester details to the context.
-	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
-		ID: uuid.New(),
+	// Add JWT claims to the context.
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, JWTClaims{
+		XUserID: uuid.New(),
 	})
 
 	// Seed the database with some records.
@@ -231,9 +232,9 @@ func Test_Database_Get(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	// Add requester details to the context.
-	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
-		ID: uuid.New(),
+	// Add JWT claims to the context.
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, JWTClaims{
+		XUserID: uuid.New(),
 	})
 
 	seed, err := db.Create(ctx, &options)
@@ -269,9 +270,9 @@ func Test_Database_Update(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	// Add requester details to the context.
-	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
-		ID: uuid.New(),
+	// Add JWT claims to the context.
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, JWTClaims{
+		XUserID: uuid.New(),
 	})
 
 	seed, err := db.Create(ctx, &options)
@@ -310,9 +311,9 @@ func Test_Database_Delete(t *testing.T) {
 		Title: "Test Record",
 	}
 
-	// Add requester details to the context.
-	ctx := context.WithValue(context.Background(), XRequestingUser, Requester{
-		ID: uuid.New(),
+	// Add JWT claims to the context.
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, JWTClaims{
+		XUserID: uuid.New(),
 	})
 
 	seed, err := db.Create(ctx, &options)

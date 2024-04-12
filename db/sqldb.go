@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"gorm.io/gorm"
 )
 
@@ -43,11 +44,11 @@ func (db *sqldb) Create(ctx context.Context, options *CreateOptions) (*model.Rec
 		return nil, ErrInvalidOptions
 	}
 
-	// Try to extract the requester details from the context.
-	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	// Try to extract the JWT claims from the context.
+	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if exists {
-		options.UserID = requester.ID
+		options.UserID = claims.XUserID
 	}
 
 	// Validate options.
@@ -76,12 +77,12 @@ func (db *sqldb) Create(ctx context.Context, options *CreateOptions) (*model.Rec
 func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	// Try to extract the requester details from the context.
-	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	// Try to extract the JWT claims from the context.
+	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if exists {
 		txn = txn.Where(&model.Record{
-			UserID: requester.ID,
+			UserID: claims.XUserID,
 		})
 	}
 
@@ -118,12 +119,12 @@ func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Recor
 func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	// Try to extract the requester details from the context.
-	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	// Try to extract the JWT claims from the context.
+	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if exists {
 		txn = txn.Where(&model.Record{
-			UserID: requester.ID,
+			UserID: claims.XUserID,
 		})
 	}
 
@@ -140,12 +141,12 @@ func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 
-	// Try to extract the requester details from the context.
-	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	// Try to extract the JWT claims from the context.
+	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if exists {
 		txn = txn.Where(&model.Record{
-			UserID: requester.ID,
+			UserID: claims.XUserID,
 		})
 	}
 
@@ -165,12 +166,12 @@ func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOption
 func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 
-	// Try to extract the requester details from the context.
-	// If the requester details are available, preset/override options and apply Row Level Security (RLS) checks.
-	requester, exists := ctx.Value(XRequestingUser).(Requester)
+	// Try to extract the JWT claims from the context.
+	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if exists {
 		txn = txn.Where(&model.Record{
-			UserID: requester.ID,
+			UserID: claims.XUserID,
 		})
 	}
 

@@ -13,9 +13,6 @@ type CreateOptions struct {
 
 	//	Title of the record.
 	Title string `json:"title"`
-
-	// Details of the user who sent the request.
-	requester *Requester
 }
 
 // Validate the options.
@@ -24,13 +21,6 @@ func (o *CreateOptions) Validate() error {
 		return &Response{
 			Status:  http.StatusBadRequest,
 			Message: "Title is required.",
-			Err:     ErrInvalidRequestOptions,
-		}
-	}
-	if o.requester == nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Requester details not found.",
 			Err:     ErrInvalidRequestOptions,
 		}
 	}
@@ -85,6 +75,13 @@ func NewCreateHandler(config *CreateHandlerConfig) Handler {
 // ServeHTTP handles the incoming HTTP request.
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
+	// Prepare the context.
+	ctx, err := getctx(r)
+	if err != nil {
+		handleErr(w, err)
+		return
+	}
+
 	// Decode the request options.
 	options, err := decode[CreateOptions](r)
 	if err != nil {
@@ -93,23 +90,6 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Err:     err,
 		})
 		return
-	}
-
-	// Load the context.
-	ctx := r.Context()
-
-	// Get the JWT claims.
-	claims, err := getClaims(ctx)
-	if err != nil {
-		write(w, http.StatusUnauthorized, &Response{
-			Message: "Failed to either extract or validate claims in the JWT.",
-			Err:     err,
-		})
-		return
-	}
-
-	options.requester = &Requester{
-		ID: claims.UserID,
 	}
 
 	// Validate the request options.
@@ -130,8 +110,6 @@ func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) err
 	// Call the service method that performs the required operation.
 	record, err := h.service.Create(ctx, &service.CreateOptions{
 		Title: options.Title,
-	}, &service.Requester{
-		ID: options.requester.ID,
 	})
 	if err != nil {
 		return &Response{

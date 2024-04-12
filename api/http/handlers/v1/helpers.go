@@ -82,26 +82,28 @@ func decode[T any](r *http.Request) (T, error) {
 	return v, nil
 }
 
-type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
+// Requester is the structure that holds the information of the user who sent the request.
+type Requester struct {
+	ID uuid.UUID `json:"id"`
 }
 
-// Validate the JWT Claims.
-func (c *JWTClaims) Validate() error {
-	if c.UserID == uuid.Nil {
+func (r *Requester) Validate() error {
+	if r.ID == uuid.Nil {
 		return ErrInvalidUserID
 	}
 	return nil
 }
 
-// Requester is the structure that holds the information of the user who sent the request.
-type Requester struct {
-	ID uuid.UUID
-}
+type ContextKey string
 
-func getClaims(ctx context.Context) (*JWTClaims, error) {
+const XRequestingUser ContextKey = "X-Requesting-User"
 
-	// Load the claims from request context to pass them in the service method.
+func getctx(r *http.Request) (context.Context, error) {
+
+	// Load the context.
+	ctx := r.Context()
+
+	// Get the JWT claims.
 	claims, ok := ctx.Value(middleware.XJWTClaims).(JWTClaims)
 	if !ok {
 		return nil, ErrInvalidJWTClaims
@@ -111,5 +113,13 @@ func getClaims(ctx context.Context) (*JWTClaims, error) {
 		return nil, err
 	}
 
-	return &claims, nil
+	// Convert the claims to requester details.
+	requester := Requester{
+		ID: claims.UserID,
+	}
+
+	// Set the requester in the context.
+	ctx = context.WithValue(ctx, XRequestingUser, requester)
+
+	return ctx, nil
 }

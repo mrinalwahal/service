@@ -91,7 +91,7 @@ func (h *GetHandler) validate(ctx context.Context, ID uuid.UUID) error {
 func (h *GetHandler) process(ctx context.Context, ID uuid.UUID) error {
 
 	// Call the service method that performs the required operation.
-	record, err := h.service.Get(ctx, ID, &service.Requester{})
+	record, err := h.service.Get(ctx, ID)
 	if err != nil {
 		return &Response{
 			Status:  http.StatusBadRequest,
