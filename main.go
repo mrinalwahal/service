@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,11 +10,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/mrinalwahal/service/authn"
+	"github.com/mrinalwahal/service/api/http/router"
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
-	"github.com/mrinalwahal/service/transport/http/router"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -76,7 +74,7 @@ func main() {
 	sqlDB.SetMaxIdleConns(10)
 
 	// Connect the database layer.
-	db := db.NewDB(&db.Config{
+	db := db.NewSQLDB(&db.SQLDBConfig{
 		DB: conn,
 	})
 
@@ -118,45 +116,25 @@ func main() {
 		middleware.TraceID,
 		middleware.CorrelationID,
 		// TODO: middleware.RateLimit,
-		middleware.CORS,
-		middleware.Recover(middlewareLogger),
-		middleware.Logging(middlewareLogger),
-		middleware.JWT(middlewareLogger),
+		middleware.CORS(nil),
+		middleware.Recover(&middleware.RecoverConfig{
+			Logger: middlewareLogger,
+		}),
+		middleware.Logging(&middleware.LoggingConfig{
+			Logger: middlewareLogger,
+		}),
+		middleware.JWT(&middleware.JWTConfig{
+			Key: os.Getenv("JWT_SECRET"),
+			ExceptionalRoutes: []string{
+				"/login",
+				"/healthz",
+			},
+		}),
 	)
 
 	// Prepare the base router.
 	baseRouter := http.NewServeMux()
 	baseRouter.Handle("/records/", http.StripPrefix("/records", router))
-
-	// Test signin route.
-	baseRouter.HandleFunc("/signin", func(w http.ResponseWriter, r *http.Request) {
-
-		// Parse the request body.
-		var options struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		user, err := authn.GetUserByEmailAndPassword(options.Email, options.Password)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		// Generate JWT.
-		token := authn.GenerateJWT(user.ID.String())
-		if token == "" {
-			http.Error(w, "failed to generate JWT", http.StatusInternalServerError)
-			return
-		}
-
-		// Write the JWT to the response.
-		w.Header().Set("Authorization", token)
-		w.WriteHeader(http.StatusOK)
-	})
 
 	//	Configure and start the server.
 	server := http.Server{
@@ -173,37 +151,3 @@ func main() {
 		panic(err)
 	}
 }
-
-// func init() {
-
-// 	apiBasePath := "/auth"
-// 	websiteBasePath := "/auth"
-// 	if err := supertokens.Init(supertokens.TypeInput{
-// 		Supertokens: &supertokens.ConnectionInfo{
-// 			ConnectionURI: "https://st-dev-f3a64390-f6b4-11ee-8bd5-83067183b5ac.aws.supertokens.io",
-// 			APIKey:        "103guxPTFUvqELLcm6OEfWzWUJ",
-// 		},
-// 		AppInfo: supertokens.AppInfo{
-// 			AppName:         "records",
-// 			APIDomain:       "http://localhost:8080",
-// 			WebsiteDomain:   "http://localhost:3000",
-// 			APIBasePath:     &apiBasePath,
-// 			WebsiteBasePath: &websiteBasePath,
-// 		},
-// 		RecipeList: []supertokens.Recipe{
-// 			thirdpartyemailpassword.Init(&tpepmodels.TypeInput{ /*TODO: See next step*/ }),
-// 			session.Init(&sessmodels.TypeInput{
-// 				GetTokenTransferMethod: func(req *http.Request, forCreateNewSession bool, userContext supertokens.UserContext) sessmodels.TokenTransferMethod {
-// 					return sessmodels.HeaderTransferMethod
-// 				},
-// 			}), // initializes session features
-// 			dashboard.Init(&dashboardmodels.TypeInput{
-// 				Admins: &[]string{
-// 					"test@gmail.com",
-// 				},
-// 			}), // initializes dashboard features
-// 		},
-// 	}); err != nil {
-// 		panic(err)
-// 	}
-// }

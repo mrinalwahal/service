@@ -1,10 +1,15 @@
 [environment]
 debug = false
-env = dev
+environment = dev
 
+# If you removed the database, the application will still run but it will initialize a new in-memory SQLite database everytime it starts.
 [database]
 engine = postgres
 dsn = "host=127.0.0.1 user=postgres password=postgres dbname=records port=5432 sslmode=disable TimeZone=Asia/Kolkata"
+
+[authentication]
+method = jwt
+key = { "algo": "HS256", "key": "secret" }
 
 [cache]
 engine = redis
@@ -22,4 +27,3 @@ level = info
 [meter]
 exporter = otlp
 endpoint = localhost:4318
-enabled = false

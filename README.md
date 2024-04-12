@@ -1,5 +1,10 @@
 # Records Service Boilerplate
 
+## Design
+
+- [Google Cloud Design Guide](https://cloud.google.com/apis/design).
+- Naming conventions by [Google](https://cloud.google.com/apis/design/naming_convention#product_names).
+
 ### Connection Pooling
 Only open a connection to your database w/ `gorm.Open()` just once in your code and pass it everywhere from a global variable. Gorm's underlying `sql.DB()` interface will automatically use connection pooling for every transaction. To use connection pooling, it is important to configure the following values:
 

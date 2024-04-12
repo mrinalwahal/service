@@ -3,7 +3,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -43,29 +42,27 @@ func (r Response) MarshalJSON() ([]byte, error) {
 	return json.Marshal(structure)
 }
 
-func handleErr(w http.ResponseWriter, err error) {
-
-	// Run type assertion on the response to check if it is of type `response`.
-	// If it is, then write the response as JSON.
-	// If it is not, then wrap the error in a new `Response` structure with defaults.
-	if response, ok := err.(*Response); ok {
-		if err := write(w, response.Status, response); err != nil {
-			log.Println("failed to write response:", err)
-		}
-		return
+func (r *Response) UnmarshalJSON(data []byte) error {
+	var structure = struct {
+		Data    interface{} `json:"data,omitempty"`
+		Message string      `json:"message,omitempty"`
+		Err     string      `json:"error,omitempty"`
+	}{}
+	if err := json.Unmarshal(data, &structure); err != nil {
+		return err
 	}
-	if err := write(w, http.StatusInternalServerError, &Response{
-		Message: "Your broke something on our server :(",
-		Err:     err,
-	}); err != nil {
-		log.Println("failed to write response:", err)
+	r.Data = structure.Data
+	r.Message = structure.Message
+	if structure.Err != "" {
+		r.Err = fmt.Errorf(structure.Err)
 	}
+	return nil
 }
 
 // write writes the data to the supplied http response writer.
 func write(w http.ResponseWriter, status int, response any) error {
 	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(response)
+	return encode(w, response)
 }
 
 // decode decodes the request body into the supplied type.
@@ -76,4 +73,9 @@ func decode[T any](r *http.Request) (T, error) {
 		return v, fmt.Errorf("decode json: %w", err)
 	}
 	return v, nil
+}
+
+// encode encodes the supplied data into the response writer.
+func encode(w http.ResponseWriter, data any) error {
+	return json.NewEncoder(w).Encode(data)
 }

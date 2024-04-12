@@ -7,22 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type Key string
-
 // X-Request-ID is the key used to store the request ID in the context and the response header.
 //
 // The request ID is used to uniquely identify the request.
 const XRequestID Key = "X-Request-ID"
-
-// X-Trace-ID is the key used to store the trace ID in the context and the response header.
-//
-// The trace ID is used to trace the request through multiple services.
-const XTraceID Key = "X-Trace-ID"
-
-// X-Correlation-ID is the key used to store the correlation ID in the context and the response header.
-//
-// The correlation ID is used to correlate the request with other requests.
-const XCorrelationID Key = "X-Correlation-ID"
 
 // RequestID middleware adds a unique UUID to the request context and response headers.
 func RequestID(next http.Handler) http.Handler {
@@ -42,6 +30,11 @@ func RequestID(next http.Handler) http.Handler {
 	})
 }
 
+// X-Trace-ID is the key used to store the trace ID in the context and the response header.
+//
+// The trace ID is used to trace the request through multiple services.
+const XTraceID Key = "X-Trace-ID"
+
 // TraceID middleware adds a unique UUID to the request context and response headers.
 func TraceID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +52,11 @@ func TraceID(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// X-Correlation-ID is the key used to store the correlation ID in the context and the response header.
+//
+// The correlation ID is used to correlate the request with other requests.
+const XCorrelationID Key = "X-Correlation-ID"
 
 // CorrelationID middleware adds a unique UUID to the request context and response headers.
 func CorrelationID(next http.Handler) http.Handler {

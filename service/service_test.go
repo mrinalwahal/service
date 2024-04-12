@@ -10,7 +10,6 @@ import (
 	"github.com/mrinalwahal/service/db"
 	"github.com/mrinalwahal/service/model"
 	"go.uber.org/mock/gomock"
-	"gorm.io/gorm"
 )
 
 // Contains all the configuration required by our tests.
@@ -19,8 +18,8 @@ type testconfig struct {
 	// Mock database layer.
 	db *db.MockDB
 
-	// Test logger.
-	logger *slog.Logger
+	// Test log.
+	log *slog.Logger
 }
 
 // Setup the test environment.
@@ -29,8 +28,8 @@ func configure(t *testing.T) *testconfig {
 	// Get the mock database layer.
 	db := db.NewMockDB(gomock.NewController(t))
 	return &testconfig{
-		db:     db,
-		logger: slog.Default(),
+		db:  db,
+		log: slog.Default(),
 	}
 }
 
@@ -42,21 +41,24 @@ func Test_Service_Create(t *testing.T) {
 	// Initialize the service.
 	s := &service{
 		db:     config.db,
-		logger: config.logger,
+		logger: config.log,
 	}
 
 	t.Run("create record with nil options", func(t *testing.T) {
 
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
+
 		_, err := s.Create(context.Background(), nil)
-		if err == nil || err != ErrInvalidArguments {
+		if err == nil || err != ErrOptionsNotFound {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
-	t.Run("create record with empty title", func(t *testing.T) {
+	t.Run("create record with invalid options", func(t *testing.T) {
 
-		// Set the expectation.
-		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, gorm.ErrInvalidValue).Times(1)
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
 
 		_, err := s.Create(context.Background(), &CreateOptions{
 			Title: "",
@@ -66,33 +68,13 @@ func Test_Service_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("create record with title", func(t *testing.T) {
+	t.Run("create record with valid options", func(t *testing.T) {
 
 		record := model.Record{
 			Title: "Test Record",
 		}
 
-		// Set the expectation.
-		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&record, nil).Times(1)
-
-		got, err := s.Create(context.Background(), &CreateOptions{
-			Title: record.Title,
-		})
-		if err != nil {
-			t.Errorf("service.Create() error = %v, wantErr %v", err, false)
-		}
-		if got.Title != record.Title {
-			t.Errorf("service.Create() = %v, want %v", got.Title, record.Title)
-		}
-	})
-
-	t.Run("generate UUID of a new record automatically", func(t *testing.T) {
-
-		record := model.Record{
-			Title: "Test Record",
-		}
-
-		// Set the expectation.
+		// Set the expectation at the database layer.
 		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
 			Base: model.Base{
 				ID: uuid.New(),
@@ -109,6 +91,9 @@ func Test_Service_Create(t *testing.T) {
 		if got.ID == uuid.Nil {
 			t.Errorf("service.Create() = %v, want a valid UUID", got.ID)
 		}
+		if got.Title != record.Title {
+			t.Errorf("service.Create() = %v, want %v", got.Title, record.Title)
+		}
 	})
 }
 
@@ -120,7 +105,7 @@ func Test_Service_List(t *testing.T) {
 	// Initialize the service.
 	s := &service{
 		db:     config.db,
-		logger: config.logger,
+		logger: config.log,
 	}
 
 	type args struct {
@@ -198,7 +183,7 @@ func Test_Service_Get(t *testing.T) {
 	// Initialize the service.
 	s := &service{
 		db:     config.db,
-		logger: config.logger,
+		logger: config.log,
 	}
 
 	// Sample record UUID.

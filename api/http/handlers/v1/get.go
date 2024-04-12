@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
@@ -57,7 +56,6 @@ func NewGetHandler(config *GetHandlerConfig) Handler {
 // ServeHTTP handles the incoming HTTP request.
 func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		write(w, http.StatusBadRequest, &Response{
@@ -66,43 +64,17 @@ func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load the context.
-	ctx := r.Context()
-
-	// Validate the request.
-	if err := h.validate(ctx, id); err != nil {
-		handleErr(w, err)
+	record, err := h.service.Get(r.Context(), id)
+	if err != nil {
+		write(w, http.StatusBadRequest, &Response{
+			Message: "Failed to get the record.",
+			Err:     err,
+		})
 		return
 	}
 
-	// Call the function.
-	if err := h.process(ctx, id); err != nil {
-		handleErr(w, err)
-	}
-}
-
-// validate function ascertains that the requester is authorized to perform this request.
-// This is where the "API rule/condition" logic is applied.
-func (h *GetHandler) validate(ctx context.Context, ID uuid.UUID) error {
-	return nil
-}
-
-// process applies the fundamental business logic to complete required operation.
-func (h *GetHandler) process(ctx context.Context, ID uuid.UUID) error {
-
-	// Call the service method that performs the required operation.
-	record, err := h.service.Get(ctx, ID)
-	if err != nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Failed to get the record.",
-			Err:     err,
-		}
-	}
-
-	return &Response{
-		Status:  http.StatusOK,
+	write(w, http.StatusOK, &Response{
 		Message: "The record was retrieved successfully.",
 		Data:    record,
-	}
+	})
 }

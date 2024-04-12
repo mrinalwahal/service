@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=mock.go -source=service.go -package=service
+//go:generate mockgen -destination=service_mock.go -source=service.go -package=service
 package service
 
 import (
@@ -57,8 +57,12 @@ func (s *service) Create(ctx context.Context, options *CreateOptions) (*model.Re
 		slog.String("function", "create"),
 	)
 	if options == nil {
-		return nil, ErrInvalidArguments
+		return nil, ErrOptionsNotFound
 	}
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
+
 	return s.db.Create(ctx, &db.CreateOptions{
 		Title:  options.Title,
 		UserID: options.UserID,
@@ -70,8 +74,12 @@ func (s *service) List(ctx context.Context, options *ListOptions) ([]*model.Reco
 		slog.String("function", "list"),
 	)
 	if options == nil {
-		return nil, ErrInvalidArguments
+		return nil, ErrOptionsNotFound
 	}
+	if err := options.validate(); err != nil {
+		return nil, err
+	}
+
 	return s.db.List(ctx, &db.ListOptions{
 		Title:          options.Title,
 		Skip:           options.Skip,
@@ -86,7 +94,7 @@ func (s *service) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) 
 		slog.String("function", "get"),
 	)
 	if ID == uuid.Nil {
-		return nil, ErrInvalidArguments
+		return nil, ErrOptionsNotFound
 	}
 	return s.db.Get(ctx, ID)
 }
@@ -96,10 +104,13 @@ func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptio
 		slog.String("function", "update"),
 	)
 	if ID == uuid.Nil {
-		return nil, ErrInvalidArguments
+		return nil, ErrOptionsNotFound
 	}
 	if options == nil {
-		return nil, ErrInvalidArguments
+		return nil, ErrOptionsNotFound
+	}
+	if err := options.validate(); err != nil {
+		return nil, err
 	}
 	return s.db.Update(ctx, ID, &db.UpdateOptions{
 		Title: options.Title,
@@ -111,7 +122,7 @@ func (s *service) Delete(ctx context.Context, ID uuid.UUID) error {
 		slog.String("function", "delete"),
 	)
 	if ID == uuid.Nil {
-		return ErrInvalidArguments
+		return ErrOptionsNotFound
 	}
 	return s.db.Delete(ctx, ID)
 }

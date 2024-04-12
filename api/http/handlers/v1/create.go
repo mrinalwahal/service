@@ -1,13 +1,9 @@
 package v1
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 )
 
@@ -16,19 +12,12 @@ type CreateOptions struct {
 
 	//	Title of the record.
 	Title string `json:"title"`
-
-	// UserID extracted from the request context.
-	UserID uuid.UUID `json:"-"`
 }
 
 // Validate the options.
 func (o *CreateOptions) Validate() error {
 	if o.Title == "" {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Title is required.",
-			Err:     ErrInvalidRequestOptions,
-		}
+		return ErrInvalidRequestOptions
 	}
 	return nil
 }
@@ -91,75 +80,29 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load the context.
-	ctx := r.Context()
-
-	// [DEBUG] Log the user ID form context.
-	fmt.Println("User ID:", ctx.Value(middleware.UserID))
-
-	// Load the claims from request context to pass them in the service method.
-	userID, ok := ctx.Value(middleware.UserID).(uuid.UUID)
-	if !ok {
-		handleErr(w, &Response{
-			Status:  http.StatusUnauthorized,
-			Message: "User ID not found in the request context.",
-			Err:     ErrInvalidUserID,
-		})
-		return
-	}
-	if userID == uuid.Nil {
-		handleErr(w, &Response{
-			Status:  http.StatusUnauthorized,
-			Message: "User ID is invalid.",
-			Err:     ErrInvalidUserID,
-		})
-		return
-	}
-	options.UserID = userID
-
 	// Validate the request options.
 	if err := options.Validate(); err != nil {
-		handleErr(w, err)
+		write(w, http.StatusBadRequest, Response{
+			Message: "Failed validate request options.",
+			Err:     ErrInvalidRequestOptions,
+		})
 		return
 	}
-
-	// Validate the request.
-	if err := h.validate(ctx, &options); err != nil {
-		handleErr(w, err)
-		return
-	}
-
-	// Call the function.
-	if err := h.process(ctx, &options); err != nil {
-		handleErr(w, err)
-	}
-}
-
-// validate function ascertains that the requester is authorized to perform this request.
-// This is where the "API rule/condition" logic is applied.
-func (h *CreateHandler) validate(ctx context.Context, options *CreateOptions) error {
-	return nil
-}
-
-// process applies the fundamental business logic to complete required operation.
-func (h *CreateHandler) process(ctx context.Context, options *CreateOptions) error {
 
 	// Call the service method that performs the required operation.
-	record, err := h.service.Create(ctx, &service.CreateOptions{
-		Title:  options.Title,
-		UserID: options.UserID,
+	record, err := h.service.Create(r.Context(), &service.CreateOptions{
+		Title: options.Title,
 	})
 	if err != nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
+		write(w, http.StatusBadRequest, Response{
 			Message: "Failed to create the record.",
 			Err:     err,
-		}
+		})
+		return
 	}
 
-	return &Response{
-		Status:  http.StatusCreated,
+	write(w, http.StatusCreated, Response{
 		Message: "The record was created successfully.",
 		Data:    record,
-	}
+	})
 }

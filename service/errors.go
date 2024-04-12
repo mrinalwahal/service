@@ -3,5 +3,7 @@ package service
 import "fmt"
 
 var (
-	ErrInvalidArguments = fmt.Errorf("invalid arguments")
+	ErrInvalidOptions           = fmt.Errorf("invalid options")
+	ErrOptionsNotFound          = fmt.Errorf("options not found")
+	ErrRequesterDetailsNotFound = fmt.Errorf("requester details not found")
 )

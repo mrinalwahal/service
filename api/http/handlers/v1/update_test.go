@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,13 +10,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
+	"github.com/mrinalwahal/service/service"
 	"go.uber.org/mock/gomock"
 )
 
-func TestGetHandler_ServeHTTP(t *testing.T) {
+func TestUpdateHandler_ServeHTTP(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Test UUID of the record.
 	recordID := uuid.New()
@@ -46,42 +48,59 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 		// The status code we expect in response.
 		//
 		// Example: http.StatusOK
-		want int
+		wantStatus int
 
 		// Whether we expect an error or not.
 		wantErr bool
 	}{
 		{
-			name: "get record",
+			name: "update record succesfully",
 			args: args{
 				w: httptest.NewRecorder(),
 				r: func() *http.Request {
-					req := httptest.NewRequest(http.MethodGet, "/", nil)
+					req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s", recordID.String()), bytes.NewBufferString(`{"title": "Updated Title"}`))
 					req.SetPathValue("id", recordID.String())
 					return req
 				}(),
 			},
-			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
-				Base: model.Base{
-					ID: recordID,
-				},
-				Title: "model.Record 1",
+			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
+				Title: "Updated Title",
+			}).Return(&model.Record{
+				Title: "Updated Title",
 			}, nil),
-			validation: func(res *Response) error {
-				if res.Data == nil {
-					t.Log("Response:", res)
-					return fmt.Errorf("expected data to be non-nil")
+			wantStatus: http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name: "return invalid title after updating record",
+			args: args{
+				w: httptest.NewRecorder(),
+				r: func() *http.Request {
+					req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s", recordID.String()), bytes.NewBufferString(`{"title": "Updated Title"}`))
+					req.SetPathValue("id", recordID.String())
+					return req
+				}(),
+			},
+			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
+				Title: "Updated Title",
+			}).Return(&model.Record{
+				Title: "Wrong Title",
+			}, nil),
+			validation: func(r *Response) error {
+				if r.Message != "Updated title" {
+					return fmt.Errorf("expected message to be 'Updated title', got %s", r.Message)
 				}
 				return nil
 			},
-			want: http.StatusOK,
+			wantStatus: http.StatusOK,
+			wantErr:    true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &GetHandler{
+			h := &UpdateHandler{
 				service: environment.service,
-				log:     environment.logger,
+				log:     environment.log,
 			}
 
 			// Set the expectation.
@@ -92,18 +111,18 @@ func TestGetHandler_ServeHTTP(t *testing.T) {
 			// Decode the body
 			var resp Response
 			if err := json.Unmarshal(tt.args.w.(*httptest.ResponseRecorder).Body.Bytes(), &resp); err != nil {
-				t.Errorf("GetHandler.ServeHTTP() = %v", err)
+				t.Errorf("UpdateHandler.ServeHTTP() = %v", err)
 			}
 
 			// Validate the status code.
-			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.want {
-				t.Errorf("GetHandler.ServeHTTP() = %v, want %v", status, tt.want)
+			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.wantStatus {
+				t.Errorf("UpdateHandler.ServeHTTP() = %v, want %v", status, tt.wantStatus)
 			}
 
 			// Run validation function.
 			if tt.validation != nil {
 				if err := tt.validation(&resp); (err != nil) != tt.wantErr {
-					t.Errorf("GetHandler.ServeHTTP() = %v", err)
+					t.Errorf("UpdateHandler.ServeHTTP() = %v", err)
 				}
 			}
 		})

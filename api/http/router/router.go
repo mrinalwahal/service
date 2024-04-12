@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	v1 "github.com/mrinalwahal/service/api/http/handlers/v1"
 	"github.com/mrinalwahal/service/service"
-	v1 "github.com/mrinalwahal/service/transport/http/handlers/v1"
 )
 
 type HTTPRouter struct {

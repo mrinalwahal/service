@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
@@ -78,8 +77,7 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request options.
 	var options ListOptions
-	err := qstring.Unmarshal(r.URL.Query(), &options)
-	if err != nil {
+	if err := qstring.Unmarshal(r.URL.Query(), &options); err != nil {
 		write(w, http.StatusBadRequest, &Response{
 			Message: "Invalid request options.",
 			Err:     err,
@@ -87,45 +85,24 @@ func (h *ListHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load the context.
-	ctx := r.Context()
-
-	// Validate the request.
-	if err := h.validate(ctx, &options); err != nil {
-		handleErr(w, err)
+	// Call the service method that performs the required operation.
+	records, err := h.service.List(r.Context(), &service.ListOptions{
+		Title:          options.Title,
+		Skip:           options.Skip,
+		Limit:          options.Limit,
+		OrderBy:        options.OrderBy,
+		OrderDirection: options.OrderDirection,
+	})
+	if err != nil {
+		write(w, http.StatusBadRequest, &Response{
+			Message: "Failed to list the records.",
+			Err:     err,
+		})
 		return
 	}
 
-	// Call the function.
-	if err := h.process(ctx, &options); err != nil {
-		handleErr(w, err)
-	}
-}
-
-// Validate function ascertains that the requester is authorized to perform this request.
-// This is where the "API rule/condition" logic is applied.
-func (h *ListHandler) validate(ctx context.Context, options *ListOptions) error {
-	return nil
-}
-
-// process applies the fundamental business logic to complete required operation.
-func (h *ListHandler) process(ctx context.Context, options *ListOptions) error {
-
-	// Call the service method that performs the required operation.
-	records, err := h.service.List(ctx, &service.ListOptions{
-		Title: options.Title,
-	})
-	if err != nil {
-		return &Response{
-			Status:  http.StatusBadRequest,
-			Message: "Failed to list the records.",
-			Err:     err,
-		}
-	}
-
-	return &Response{
-		Status:  http.StatusOK,
+	write(w, http.StatusOK, &Response{
 		Message: "The records were retrieved successfully.",
 		Data:    records,
-	}
+	})
 }

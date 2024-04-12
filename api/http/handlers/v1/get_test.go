@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,14 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
-	"github.com/mrinalwahal/service/service"
 	"go.uber.org/mock/gomock"
 )
 
-func TestUpdateHandler_ServeHTTP(t *testing.T) {
+func TestGetHandler_ServeHTTP(t *testing.T) {
 
 	// Setup the test environment.
-	environment := initialize(t)
+	environment := configure(t)
 
 	// Test UUID of the record.
 	recordID := uuid.New()
@@ -48,59 +46,42 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 		// The status code we expect in response.
 		//
 		// Example: http.StatusOK
-		wantStatus int
+		want int
 
 		// Whether we expect an error or not.
 		wantErr bool
 	}{
 		{
-			name: "update record succesfully",
+			name: "get record",
 			args: args{
 				w: httptest.NewRecorder(),
 				r: func() *http.Request {
-					req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s", recordID.String()), bytes.NewBufferString(`{"title": "Updated Title"}`))
+					req := httptest.NewRequest(http.MethodGet, "/", nil)
 					req.SetPathValue("id", recordID.String())
 					return req
 				}(),
 			},
-			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
-				Title: "Updated Title",
-			}).Return(&model.Record{
-				Title: "Updated Title",
+			expectation: environment.service.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
+				Base: model.Base{
+					ID: recordID,
+				},
+				Title: "Record 1",
 			}, nil),
-			wantStatus: http.StatusOK,
-			wantErr:    false,
-		},
-		{
-			name: "return invalid title after updating record",
-			args: args{
-				w: httptest.NewRecorder(),
-				r: func() *http.Request {
-					req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/%s", recordID.String()), bytes.NewBufferString(`{"title": "Updated Title"}`))
-					req.SetPathValue("id", recordID.String())
-					return req
-				}(),
-			},
-			expectation: environment.service.EXPECT().Update(gomock.Any(), recordID, &service.UpdateOptions{
-				Title: "Updated Title",
-			}).Return(&model.Record{
-				Title: "Wrong Title",
-			}, nil),
-			validation: func(r *Response) error {
-				if r.Message != "Updated title" {
-					return fmt.Errorf("expected message to be 'Updated title', got %s", r.Message)
+			validation: func(res *Response) error {
+				if res.Data == nil {
+					t.Log("Response:", res)
+					return fmt.Errorf("expected data to be non-nil")
 				}
 				return nil
 			},
-			wantStatus: http.StatusOK,
-			wantErr:    true,
+			want: http.StatusOK,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &UpdateHandler{
+			h := &GetHandler{
 				service: environment.service,
-				log:     environment.logger,
+				log:     environment.log,
 			}
 
 			// Set the expectation.
@@ -111,18 +92,18 @@ func TestUpdateHandler_ServeHTTP(t *testing.T) {
 			// Decode the body
 			var resp Response
 			if err := json.Unmarshal(tt.args.w.(*httptest.ResponseRecorder).Body.Bytes(), &resp); err != nil {
-				t.Errorf("UpdateHandler.ServeHTTP() = %v", err)
+				t.Errorf("GetHandler.ServeHTTP() = %v", err)
 			}
 
 			// Validate the status code.
-			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.wantStatus {
-				t.Errorf("UpdateHandler.ServeHTTP() = %v, want %v", status, tt.wantStatus)
+			if status := tt.args.w.(*httptest.ResponseRecorder).Code; status != tt.want {
+				t.Errorf("GetHandler.ServeHTTP() = %v, want %v", status, tt.want)
 			}
 
 			// Run validation function.
 			if tt.validation != nil {
 				if err := tt.validation(&resp); (err != nil) != tt.wantErr {
-					t.Errorf("UpdateHandler.ServeHTTP() = %v", err)
+					t.Errorf("GetHandler.ServeHTTP() = %v", err)
 				}
 			}
 		})
