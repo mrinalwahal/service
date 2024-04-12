@@ -55,6 +55,7 @@ func NewGetHandler(config *GetHandlerConfig) Handler {
 
 // ServeHTTP handles the incoming HTTP request.
 func (h *GetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.log.DebugContext(r.Context(), "handling request")
 
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {

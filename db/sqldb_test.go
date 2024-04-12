@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/pkg/middleware"
@@ -91,7 +90,7 @@ func Test_Database_Create(t *testing.T) {
 		}
 
 		// Add JWT claims to the context.
-		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
 			XUserID: uuid.New(),
 		})
 		record, err := db.Create(ctx, options)
@@ -121,7 +120,7 @@ func Test_Database_List(t *testing.T) {
 	}
 
 	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
 		XUserID: uuid.New(),
 	})
 
@@ -236,7 +235,7 @@ func Test_Database_Get(t *testing.T) {
 	}
 
 	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
 		XUserID: uuid.New(),
 	})
 
@@ -274,7 +273,7 @@ func Test_Database_Update(t *testing.T) {
 	}
 
 	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
 		XUserID: uuid.New(),
 	})
 
@@ -315,7 +314,7 @@ func Test_Database_Delete(t *testing.T) {
 	}
 
 	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
+	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
 		XUserID: uuid.New(),
 	})
 

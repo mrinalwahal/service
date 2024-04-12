@@ -69,6 +69,7 @@ func NewCreateHandler(config *CreateHandlerConfig) Handler {
 
 // ServeHTTP handles the incoming HTTP request.
 func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.log.DebugContext(r.Context(), "handling request")
 
 	// Decode the request options.
 	options, err := decode[CreateOptions](r)

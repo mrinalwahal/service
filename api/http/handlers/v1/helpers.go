@@ -12,7 +12,6 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message,omitempty"`
 	Err     error       `json:"error,omitempty"`
-	Status  int         `json:"-"`
 }
 
 // Error returns the error message.
