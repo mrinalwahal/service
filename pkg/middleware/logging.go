@@ -44,11 +44,7 @@ func Logging(config *LoggingConfig) Middleware {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			var start time.Time
-			if config.LogLatency {
-				start = time.Now()
-			}
+			start := time.Now()
 
 			//
 			// If you want to run some code before the request is handled, you can do it here.

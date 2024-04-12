@@ -29,16 +29,18 @@ func main() {
 
 	//	Setup the logger.
 	level := slog.LevelInfo
+	addSource := false
 	DEBUG, err := strconv.ParseBool(os.Getenv("DEBUG"))
 	if err != nil {
 		panic(err)
 	}
 	if DEBUG {
 		level = slog.LevelDebug
+		addSource = true
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		// AddSource: true,
-		Level: level,
+		AddSource: addSource,
+		Level:     level,
 	}))
 	logger = logger.
 		With("service", "record").

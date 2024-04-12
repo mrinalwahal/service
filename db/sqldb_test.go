@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const XUserID = "x-user-id"
+
 // Temporary testsqldbconfig that contains all the configuration required by our tests.
 type testsqldbconfig struct {
 

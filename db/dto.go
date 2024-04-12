@@ -1,50 +1,44 @@
 package db
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/pkg/middleware"
 )
 
 type JWTClaims struct {
-	XUserID uuid.UUID `json:"x-user-id"`
+	jwt.MapClaims
+	Claims  map[string]interface{} `json:"claims"`
+	XUserID uuid.UUID              `json:"x-user-id"`
 }
 
-// // validate the JWT Claims.
-// func (c *JWTClaims) validate() error {
-// 	if c.XUserID == uuid.Nil {
-// 		return ErrInvalidUserID
-// 	}
-// 	return nil
-// }
-
-func getClaims(ctx context.Context) (*JWTClaims, error) {
-	claims, exists := ctx.Value(middleware.XJWTClaims).(jwt.MapClaims)
-	if !exists {
-		return nil, nil
+// Custom unmarshal function for JWTClaims.
+func (c *JWTClaims) UnmarshalJSON(b []byte) error {
+	type alias struct {
+		XUserID string `json:"x-user-id"`
 	}
-	m, err := json.Marshal(claims)
+	var a alias
+	if err := json.Unmarshal(b, &a); err != nil {
+		return err
+	}
+	userID, err := uuid.Parse(a.XUserID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var jwtClaims JWTClaims
-	if err := json.Unmarshal(m, &jwtClaims); err != nil {
-		return nil, err
+	*c = JWTClaims{
+		XUserID: userID,
 	}
-	return &jwtClaims, nil
+	return nil
 }
 
-const XUserID = "x-user-id"
-
-const XRequestingUser = "X-Requesting-User"
-
-// Requester is the structure that holds the information of the user who sent the request.
-// type Requester struct {
-// 	ID uuid.UUID `json:"id"`
-// }
+// validate the JWT Claims.
+func (c *JWTClaims) validate() error {
+	if c.XUserID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+	return nil
+}
 
 // CreateOptions holds the options for creating a new record.
 type CreateOptions struct {
