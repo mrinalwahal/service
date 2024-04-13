@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"github.com/mrinalwahal/service/service"
 )
 
@@ -12,13 +14,27 @@ type CreateOptions struct {
 
 	//	Title of the record.
 	Title string `json:"title"`
+
+	// ID of the user who is creating the record.
+	UserID uuid.UUID `json:"-"`
 }
 
-// Validate the options.
-func (o *CreateOptions) Validate() error {
+// validate the options.
+func (o *CreateOptions) validate() error {
 	if o.Title == "" {
 		return ErrInvalidRequestOptions
 	}
+	return nil
+}
+
+// preset presets options from claims in the request context.
+func (o *CreateOptions) preset(r *http.Request) error {
+	claims, exists := r.Context().Value(middleware.XJWTClaims).(middleware.JWTClaims)
+	if !exists {
+		return ErrInvalidJWTClaims
+	}
+
+	o.UserID = claims.XUserID
 	return nil
 }
 
@@ -82,7 +98,7 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate the request options.
-	if err := options.Validate(); err != nil {
+	if err := options.validate(); err != nil {
 		write(w, http.StatusBadRequest, Response{
 			Message: "Failed validate request options.",
 			Err:     ErrInvalidRequestOptions,
@@ -90,9 +106,19 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Present options from the request.
+	if err := options.preset(r); err != nil {
+		write(w, http.StatusBadRequest, Response{
+			Message: "Failed to apply presets.",
+			Err:     err,
+		})
+		return
+	}
+
 	// Call the service method that performs the required operation.
 	record, err := h.service.Create(r.Context(), &service.CreateOptions{
-		Title: options.Title,
+		Title:  options.Title,
+		UserID: options.UserID,
 	})
 	if err != nil {
 		write(w, http.StatusBadRequest, Response{

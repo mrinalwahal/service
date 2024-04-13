@@ -146,6 +146,23 @@ func Test_Database_List(t *testing.T) {
 		}
 	})
 
+	t.Run("list records as a different user than the one who created them", func(t *testing.T) {
+
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
+		})
+
+		records, err := db.List(ctx, &ListOptions{})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) != 0 {
+			t.Fatalf("expected 0 records, got %d", len(records))
+		}
+	})
+
 	t.Run("list w/ title filter", func(t *testing.T) {
 
 		records, err := db.List(ctx, &ListOptions{
