@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -21,15 +22,21 @@ type CreateOptions struct {
 
 // validate the options.
 func (o *CreateOptions) validate() error {
-	if o.Title == "" {
-		return ErrInvalidRequestOptions
+	checks := []bool{
+		o.Title != "",
+		o.UserID != uuid.Nil,
+	}
+	for _, check := range checks {
+		if !check {
+			return ErrInvalidRequestOptions
+		}
 	}
 	return nil
 }
 
-// preset presets options from claims in the request context.
-func (o *CreateOptions) preset(r *http.Request) error {
-	claims, exists := r.Context().Value(middleware.XJWTClaims).(middleware.JWTClaims)
+// preset presets options from claims in the context.
+func (o *CreateOptions) preset(ctx context.Context) error {
+	claims, exists := ctx.Value(middleware.XJWTClaims).(middleware.JWTClaims)
 	if !exists {
 		return ErrInvalidJWTClaims
 	}
@@ -97,6 +104,18 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load the context.
+	ctx := r.Context()
+
+	// Preset options from the request.
+	if err := options.preset(ctx); err != nil {
+		write(w, http.StatusBadRequest, Response{
+			Message: "Failed to preset options from request claims.",
+			Err:     err,
+		})
+		return
+	}
+
 	// Validate the request options.
 	if err := options.validate(); err != nil {
 		write(w, http.StatusBadRequest, Response{
@@ -106,17 +125,8 @@ func (h *CreateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Present options from the request.
-	if err := options.preset(r); err != nil {
-		write(w, http.StatusBadRequest, Response{
-			Message: "Failed to apply presets.",
-			Err:     err,
-		})
-		return
-	}
-
 	// Call the service method that performs the required operation.
-	record, err := h.service.Create(r.Context(), &service.CreateOptions{
+	record, err := h.service.Create(ctx, &service.CreateOptions{
 		Title:  options.Title,
 		UserID: options.UserID,
 	})

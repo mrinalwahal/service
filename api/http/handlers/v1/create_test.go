@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/pkg/middleware"
@@ -86,7 +85,7 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// The service layer should ideally return an error because the JWT claims are missing.
-		config.service.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, service.ErrInvalidOptions)
+		config.service.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, service.ErrInvalidOptions).Times(0)
 
 		// Serve the request.
 		handler.ServeHTTP(w, r)
@@ -117,24 +116,25 @@ func TestCreateHandler_ServeHTTP(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Set the JWT claims in the request context.
-		id := uuid.New()
-		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
-			"x-user-id": id,
+		user_id := uuid.New()
+		r = r.WithContext(context.WithValue(r.Context(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: user_id,
 		}))
 
-		// The service layer should ideally return a record.
+		// The service layer is expected to return a record.
 		config.service.EXPECT().Create(gomock.Any(), gomock.Any()).Return(&model.Record{
 			Base: model.Base{
 				ID: uuid.New(),
 			},
 			Title:  options.Title,
-			UserID: id,
-		}, nil)
+			UserID: user_id,
+		}, nil).Times(1)
 
 		// Serve the request.
 		handler.ServeHTTP(w, r)
 
 		if w.Code != http.StatusCreated {
+			t.Logf("response: %s", w.Body.String())
 			t.Fatalf("expected status code %d, got %d", http.StatusCreated, w.Code)
 		}
 	})

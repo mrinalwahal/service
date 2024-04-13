@@ -12,8 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const XUserID = "x-user-id"
-
 // Temporary testsqldbconfig that contains all the configuration required by our tests.
 type testsqldbconfig struct {
 
@@ -86,13 +84,11 @@ func Test_Database_Create(t *testing.T) {
 	t.Run("create record with options w/ JWT claims", func(t *testing.T) {
 
 		options := &CreateOptions{
-			Title: "Test Record",
+			Title:  "Test Record",
+			UserID: uuid.New(),
 		}
 
-		// Add JWT claims to the context.
-		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
-			XUserID: uuid.New(),
-		})
+		ctx := context.Background()
 		record, err := db.Create(ctx, options)
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -119,15 +115,13 @@ func Test_Database_List(t *testing.T) {
 		conn: environment.conn,
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	// Seed the database with some records.
 	for i := 0; i < 5; i++ {
 		_, err := db.Create(ctx, &CreateOptions{
-			Title: fmt.Sprintf("Record %d", i),
+			Title:  fmt.Sprintf("Record %d", i),
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to seed the database: %v", err)
@@ -248,13 +242,11 @@ func Test_Database_Get(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {
@@ -286,13 +278,11 @@ func Test_Database_Update(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {
@@ -327,13 +317,11 @@ func Test_Database_Delete(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {

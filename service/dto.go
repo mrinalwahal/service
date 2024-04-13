@@ -16,7 +16,10 @@ type CreateOptions struct {
 
 func (o *CreateOptions) validate() error {
 	if o.Title == "" {
-		return ErrInvalidOptions
+		return ErrInvalidTitle
+	}
+	if o.UserID == uuid.Nil {
+		return ErrInvalidUserID
 	}
 	return nil
 }
@@ -37,10 +40,10 @@ type ListOptions struct {
 
 func (o *ListOptions) validate() error {
 	if o.Skip < 0 {
-		return ErrInvalidOptions
+		return ErrInvalidFilters
 	}
 	if o.Limit < 0 || o.Limit > 100 {
-		return ErrInvalidOptions
+		return ErrInvalidFilters
 	}
 	return nil
 }
@@ -53,7 +56,7 @@ type UpdateOptions struct {
 
 func (o *UpdateOptions) validate() error {
 	if o.Title == "" {
-		return ErrInvalidOptions
+		return ErrInvalidTitle
 	}
 	return nil
 }
