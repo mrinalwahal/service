@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
 	"github.com/mrinalwahal/service/pkg/middleware"
@@ -85,13 +84,11 @@ func Test_Database_Create(t *testing.T) {
 	t.Run("create record with options w/ JWT claims", func(t *testing.T) {
 
 		options := &CreateOptions{
-			Title: "Test Record",
+			Title:  "Test Record",
+			UserID: uuid.New(),
 		}
 
-		// Add JWT claims to the context.
-		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
-			XUserID: uuid.New(),
-		})
+		ctx := context.Background()
 		record, err := db.Create(ctx, options)
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -118,15 +115,13 @@ func Test_Database_List(t *testing.T) {
 		conn: environment.conn,
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	// Seed the database with some records.
 	for i := 0; i < 5; i++ {
 		_, err := db.Create(ctx, &CreateOptions{
-			Title: fmt.Sprintf("Record %d", i),
+			Title:  fmt.Sprintf("Record %d", i),
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Fatalf("failed to seed the database: %v", err)
@@ -142,6 +137,23 @@ func Test_Database_List(t *testing.T) {
 
 		if len(records) < 1 {
 			t.Fatalf("expected at least 1 record, got %d", len(records))
+		}
+	})
+
+	t.Run("list records as a different user than the one who created them", func(t *testing.T) {
+
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
+		})
+
+		records, err := db.List(ctx, &ListOptions{})
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) != 0 {
+			t.Fatalf("expected 0 records, got %d", len(records))
 		}
 	})
 
@@ -230,13 +242,11 @@ func Test_Database_Get(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {
@@ -268,13 +278,11 @@ func Test_Database_Update(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {
@@ -309,13 +317,11 @@ func Test_Database_Delete(t *testing.T) {
 
 	// Seed the database with sample records.
 	options := CreateOptions{
-		Title: "Test Record",
+		Title:  "Test Record",
+		UserID: uuid.New(),
 	}
 
-	// Add JWT claims to the context.
-	ctx := context.WithValue(context.Background(), middleware.XJWTClaims, jwt.MapClaims{
-		XUserID: uuid.New(),
-	})
+	ctx := context.Background()
 
 	seed, err := db.Create(ctx, &options)
 	if err != nil {

@@ -57,7 +57,7 @@ func (s *service) Create(ctx context.Context, options *CreateOptions) (*model.Re
 		slog.String("function", "create"),
 	)
 	if options == nil {
-		return nil, ErrOptionsNotFound
+		return nil, ErrInvalidOptions
 	}
 	if err := options.validate(); err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (s *service) List(ctx context.Context, options *ListOptions) ([]*model.Reco
 		slog.String("function", "list"),
 	)
 	if options == nil {
-		return nil, ErrOptionsNotFound
+		return nil, ErrInvalidOptions
 	}
 	if err := options.validate(); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (s *service) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) 
 		slog.String("function", "get"),
 	)
 	if ID == uuid.Nil {
-		return nil, ErrOptionsNotFound
+		return nil, ErrInvalidOptions
 	}
 	return s.db.Get(ctx, ID)
 }
@@ -104,10 +104,10 @@ func (s *service) Update(ctx context.Context, ID uuid.UUID, options *UpdateOptio
 		slog.String("function", "update"),
 	)
 	if ID == uuid.Nil {
-		return nil, ErrOptionsNotFound
+		return nil, ErrInvalidRecordID
 	}
 	if options == nil {
-		return nil, ErrOptionsNotFound
+		return nil, ErrInvalidOptions
 	}
 	if err := options.validate(); err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (s *service) Delete(ctx context.Context, ID uuid.UUID) error {
 		slog.String("function", "delete"),
 	)
 	if ID == uuid.Nil {
-		return ErrOptionsNotFound
+		return ErrInvalidRecordID
 	}
 	return s.db.Delete(ctx, ID)
 }

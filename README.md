@@ -29,3 +29,9 @@ sqlDB.SetMaxIdleConns(0)
 - Don't log sensitive data
 - Don't ignore the performance cost of logging
 - Don't use logs for monitoring
+
+# Testing
+
+- To generate test coverage of a specific package: `go test -cover [pkg_name]`
+- To generate test coverage of the entire codebase: `go test -cover ./...`
+- To generate test coverage and open visuals in browser: `go test -coverprofile=coverage.out ./... ;    go tool cover -html=coverage.out`

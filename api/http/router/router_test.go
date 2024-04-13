@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	v1 "github.com/mrinalwahal/service/api/http/handlers/v1"
 	"github.com/mrinalwahal/service/db"
@@ -95,8 +94,8 @@ func Test_Router(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		// Set random UserID in the request context.
-		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
-			"x-user-id": uuid.New(),
+		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
 		})
 		r = r.WithContext(ctx)
 
@@ -118,13 +117,14 @@ func Test_Router(t *testing.T) {
 
 	t.Run("request to get record w/ valid id", func(t *testing.T) {
 
-		claims := jwt.MapClaims{
-			"x-user-id": uuid.New(),
+		claims := middleware.JWTClaims{
+			XUserID: uuid.New(),
 		}
 
 		// Create a record.
-		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
-			Title: "test",
+		record, err := config.service.Create(context.Background(), &service.CreateOptions{
+			Title:  "test",
+			UserID: claims.XUserID,
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -158,8 +158,8 @@ func Test_Router(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/v1", nil)
 		w := httptest.NewRecorder()
 
-		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, jwt.MapClaims{
-			"x-user-id": uuid.New(),
+		ctx := context.WithValue(r.Context(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
 		})
 		r = r.WithContext(ctx)
 
@@ -191,13 +191,14 @@ func Test_Router(t *testing.T) {
 
 	t.Run("request to update record w/ valid id", func(t *testing.T) {
 
-		claims := jwt.MapClaims{
-			"x-user-id": uuid.New(),
+		claims := middleware.JWTClaims{
+			XUserID: uuid.New(),
 		}
 
 		// Create a record.
 		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
-			Title: "test",
+			Title:  "test",
+			UserID: claims.XUserID,
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)
@@ -254,13 +255,14 @@ func Test_Router(t *testing.T) {
 
 	t.Run("request to delete record w/ valid id", func(t *testing.T) {
 
-		claims := jwt.MapClaims{
-			"x-user-id": uuid.New(),
+		claims := middleware.JWTClaims{
+			XUserID: uuid.New(),
 		}
 
 		// Create a record.
 		record, err := config.service.Create(context.WithValue(context.Background(), middleware.XJWTClaims, claims), &service.CreateOptions{
-			Title: "test",
+			Title:  "test",
+			UserID: claims.XUserID,
 		})
 		if err != nil {
 			t.Fatalf("failed to create a record: %v", err)

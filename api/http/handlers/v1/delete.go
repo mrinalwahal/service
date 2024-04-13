@@ -55,6 +55,7 @@ func NewDeleteHandler(config *DeleteHandlerConfig) Handler {
 
 // ServeHTTP handles the incoming HTTP request.
 func (h *DeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.log.DebugContext(r.Context(), "handling request")
 
 	// Decode the request options.
 	id, err := uuid.Parse(r.PathValue("id"))

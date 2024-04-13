@@ -62,6 +62,7 @@ func NewUpdateHandler(config *UpdateHandlerConfig) Handler {
 
 // ServeHTTP handles the incoming HTTP request.
 func (h *UpdateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.log.DebugContext(r.Context(), "handling request")
 
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {

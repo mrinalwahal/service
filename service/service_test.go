@@ -50,7 +50,7 @@ func Test_Service_Create(t *testing.T) {
 		config.db.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
 
 		_, err := s.Create(context.Background(), nil)
-		if err == nil || err != ErrOptionsNotFound {
+		if err == nil || err != ErrInvalidOptions {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
@@ -83,7 +83,8 @@ func Test_Service_Create(t *testing.T) {
 		}, nil).Times(1)
 
 		got, err := s.Create(context.Background(), &CreateOptions{
-			Title: record.Title,
+			Title:  record.Title,
+			UserID: uuid.New(),
 		})
 		if err != nil {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, false)

@@ -6,12 +6,25 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 // XJWTClaims is the key used to store the claims of the JWT in the context.
 //
 // The claims are used to store the information about the authenticated user.
 const XJWTClaims Key = "x-jwt-claims"
+
+type JWTClaims struct {
+	jwt.StandardClaims
+	XUserID uuid.UUID `json:"x-user-id"`
+}
+
+func (c JWTClaims) Valid() error {
+	if c.XUserID == uuid.Nil {
+		return fmt.Errorf("invalid user id")
+	}
+	return nil
+}
 
 //	JWT is a middleware that can be used to validate the JWTs.
 //
@@ -112,11 +125,12 @@ func JWT(config *JWTConfig) Middleware {
 
 			// Remove the prefix from the JWT.
 			if len(header) > len(config.Prefix) && header[:len(config.Prefix)] == config.Prefix {
-				header = header[len(config.Prefix):]
+				header = header[len(config.Prefix)+1:]
 			}
 
 			// Parse the JWT and extract the claims.
-			token, err := jwt.Parse(header, func(token *jwt.Token) (interface{}, error) {
+			var claims JWTClaims
+			token, err := jwt.ParseWithClaims(header, &claims, func(token *jwt.Token) (interface{}, error) {
 				return []byte(config.Key), nil
 			})
 
@@ -130,17 +144,8 @@ func JWT(config *JWTConfig) Middleware {
 				return
 			}
 
-			// Parse the claims from the token.
-			claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok {
-				http.Error(w, "failed to parse the claims", http.StatusUnauthorized)
-				return
-			}
-
 			// Write the claims to the request context.
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, XJWTClaims, claims)
-			r = r.WithContext(ctx)
+			r = r.WithContext(context.WithValue(r.Context(), XJWTClaims, claims))
 
 			next.ServeHTTP(w, r)
 		})

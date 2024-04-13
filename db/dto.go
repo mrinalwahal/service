@@ -1,50 +1,8 @@
 package db
 
 import (
-	"context"
-	"encoding/json"
-
-	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"github.com/mrinalwahal/service/pkg/middleware"
 )
-
-type JWTClaims struct {
-	XUserID uuid.UUID `json:"x-user-id"`
-}
-
-// // validate the JWT Claims.
-// func (c *JWTClaims) validate() error {
-// 	if c.XUserID == uuid.Nil {
-// 		return ErrInvalidUserID
-// 	}
-// 	return nil
-// }
-
-func getClaims(ctx context.Context) (*JWTClaims, error) {
-	claims, exists := ctx.Value(middleware.XJWTClaims).(jwt.MapClaims)
-	if !exists {
-		return nil, nil
-	}
-	m, err := json.Marshal(claims)
-	if err != nil {
-		return nil, err
-	}
-	var jwtClaims JWTClaims
-	if err := json.Unmarshal(m, &jwtClaims); err != nil {
-		return nil, err
-	}
-	return &jwtClaims, nil
-}
-
-const XUserID = "x-user-id"
-
-const XRequestingUser = "X-Requesting-User"
-
-// Requester is the structure that holds the information of the user who sent the request.
-// type Requester struct {
-// 	ID uuid.UUID `json:"id"`
-// }
 
 // CreateOptions holds the options for creating a new record.
 type CreateOptions struct {
@@ -58,7 +16,7 @@ type CreateOptions struct {
 
 func (o *CreateOptions) validate() error {
 	if o.Title == "" {
-		return ErrEmptyTitle
+		return ErrInvalidTitle
 	}
 	if o.UserID == uuid.Nil {
 		return ErrInvalidUserID
@@ -97,8 +55,5 @@ type UpdateOptions struct {
 }
 
 func (o *UpdateOptions) validate() error {
-	if o.Title == "" {
-		return ErrEmptyTitle
-	}
 	return nil
 }

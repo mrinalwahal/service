@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mrinalwahal/service/model"
+	"github.com/mrinalwahal/service/pkg/middleware"
 	"gorm.io/gorm"
 )
 
@@ -42,18 +43,6 @@ func (db *sqldb) Create(ctx context.Context, options *CreateOptions) (*model.Rec
 	if options == nil {
 		return nil, ErrInvalidOptions
 	}
-
-	// Try to extract the JWT claims from the context.
-	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
-	claims, err := getClaims(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if claims != nil {
-		options.UserID = claims.XUserID
-	}
-
-	// Validate options.
 	if err := options.validate(); err != nil {
 		return nil, err
 	}
@@ -78,22 +67,21 @@ func (db *sqldb) Create(ctx context.Context, options *CreateOptions) (*model.Rec
 // List operation fetches a list of records from the database.
 func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
-
-	// Try to extract the JWT claims from the context.
-	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
-	claims, err := getClaims(ctx)
-	if err != nil {
+	if options == nil {
+		options = &ListOptions{}
+	}
+	if err := options.validate(); err != nil {
 		return nil, err
 	}
-	if claims != nil {
+
+	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(middleware.JWTClaims)
+	if exists {
+
+		// 1. Only the user who created the record can list it.
 		txn = txn.Where(&model.Record{
 			UserID: claims.XUserID,
 		})
-	}
-
-	// Validate options.
-	if err := options.validate(); err != nil {
-		return nil, err
 	}
 
 	var payload []*model.Record
@@ -123,14 +111,15 @@ func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Recor
 // Get operation fetches a record from the database.
 func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
-
-	// Try to extract the JWT claims from the context.
-	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
-	claims, err := getClaims(ctx)
-	if err != nil {
-		return nil, err
+	if ID == uuid.Nil {
+		return nil, ErrInvalidOptions
 	}
-	if claims != nil {
+
+	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(middleware.JWTClaims)
+	if exists {
+
+		// 1. Only the user who created the record can get it.
 		txn = txn.Where(&model.Record{
 			UserID: claims.XUserID,
 		})
@@ -148,21 +137,21 @@ func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 // Update operation updates a record in the database.
 func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
-
-	// Try to extract the JWT claims from the context.
-	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
-	claims, err := getClaims(ctx)
-	if err != nil {
+	if id == uuid.Nil || options == nil {
+		return nil, ErrInvalidOptions
+	}
+	if err := options.validate(); err != nil {
 		return nil, err
 	}
-	if claims != nil {
+
+	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(middleware.JWTClaims)
+	if exists {
+
+		// 1. Only the user who created the record can update it.
 		txn = txn.Where(&model.Record{
 			UserID: claims.XUserID,
 		})
-	}
-
-	if err := options.validate(); err != nil {
-		return nil, err
 	}
 
 	var payload model.Record
@@ -176,14 +165,15 @@ func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOption
 // Delete operation deletes a record from the database.
 func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
-
-	// Try to extract the JWT claims from the context.
-	// If the JWT claims are available, preset/override options and apply Row Level Security (RLS) checks.
-	claims, err := getClaims(ctx)
-	if err != nil {
-		return err
+	if ID == uuid.Nil {
+		return ErrInvalidOptions
 	}
-	if claims != nil {
+
+	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
+	claims, exists := ctx.Value(middleware.XJWTClaims).(middleware.JWTClaims)
+	if exists {
+
+		// 1. Only the user who created the record can delete it.
 		txn = txn.Where(&model.Record{
 			UserID: claims.XUserID,
 		})

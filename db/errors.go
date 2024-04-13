@@ -4,7 +4,7 @@ import "fmt"
 
 var (
 	ErrInvalidOptions = fmt.Errorf("invalid options")
-	ErrInvalidUserID  = fmt.Errorf("invalid UserID")
-	ErrEmptyTitle     = fmt.Errorf("empty title")
+	ErrInvalidUserID  = fmt.Errorf("invalid user_id")
+	ErrInvalidTitle   = fmt.Errorf("invalid title")
 	ErrInvalidFilters = fmt.Errorf("invalid filters")
 )
