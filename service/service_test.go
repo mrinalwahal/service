@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"testing"
 
@@ -31,6 +30,52 @@ func configure(t *testing.T) *testconfig {
 		db:  db,
 		log: slog.Default(),
 	}
+}
+
+func Test_NewService(t *testing.T) {
+
+	t.Run("nil config", func(t *testing.T) {
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("NewService() did not panic")
+			}
+		}()
+
+		// Initialize the service.
+		NewService(nil)
+	})
+
+	t.Run("valid config w/ db", func(t *testing.T) {
+
+		// Get the mock database layer.
+		db := db.NewMockDB(gomock.NewController(t))
+
+		// Initialize the service.
+		s := NewService(&Config{
+			DB: db,
+		})
+
+		if s == nil {
+			t.Errorf("NewService() = %v, want a valid service", s)
+		}
+	})
+
+	t.Run("valid config w/ db and logger", func(t *testing.T) {
+
+		// Get the mock database layer.
+		db := db.NewMockDB(gomock.NewController(t))
+
+		// Initialize the service.
+		s := NewService(&Config{
+			DB:     db,
+			Logger: slog.Default(),
+		})
+
+		if s == nil {
+			t.Errorf("NewService() = %v, want a valid service", s)
+		}
+	})
 }
 
 func Test_Service_Create(t *testing.T) {
@@ -109,71 +154,56 @@ func Test_Service_List(t *testing.T) {
 		logger: config.log,
 	}
 
-	type args struct {
-		ctx     context.Context
-		options *ListOptions
-	}
-	tests := []struct {
+	t.Run("list records with nil options", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().List(gomock.Any(), gomock.Any()).Times(0)
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
-		args args
+		_, err := s.List(context.Background(), nil)
+		if err == nil || err != ErrInvalidOptions {
+			t.Errorf("service.List() error = %v, wantErr %v", err, true)
+		}
+	})
 
-		// The expectation that we will set on the mock database layer.
-		expectation *gomock.Call
+	t.Run("list records with invalid options", func(t *testing.T) {
 
-		// The validation function that will be used to validate the output.
-		validation func([]*model.Record) error
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().List(gomock.Any(), gomock.Any()).Times(0)
 
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "list records",
-			args: args{
-				ctx:     context.Background(),
-				options: &ListOptions{},
-			},
-			expectation: config.db.EXPECT().List(gomock.Any(), gomock.Any()).Return([]*model.Record{
-				{
-					Title: "Record 1",
-				},
-				{
-					Title: "Record 2",
-				},
-			}, nil),
-			validation: func(records []*model.Record) error {
-				if len(records) < 1 {
-					return fmt.Errorf("expected at least 1 seed record, got %d", len(records))
-				}
-				return nil
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			// Set the expectation.
-			tt.expectation.Times(1)
-
-			got, err := s.List(tt.args.ctx, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("service.List() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("service.List() = %v, validation produced = %v", got, tt.validation(got))
-			}
+		_, err := s.List(context.Background(), &ListOptions{
+			Skip:  -1,
+			Limit: -1,
 		})
-	}
+		if err == nil {
+			t.Errorf("service.List() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("list records with valid options", func(t *testing.T) {
+
+		records := []*model.Record{
+			{
+				Base: model.Base{
+					ID: uuid.New(),
+				},
+				Title: "Test Record",
+			},
+		}
+
+		// Set the expectation at the database layer.
+		config.db.EXPECT().List(gomock.Any(), gomock.Any()).Return(records, nil).Times(1)
+
+		got, err := s.List(context.Background(), &ListOptions{
+			Skip:  0,
+			Limit: 10,
+		})
+		if err != nil {
+			t.Errorf("service.List() error = %v, wantErr %v", err, false)
+		}
+		if len(got) != len(records) {
+			t.Errorf("service.List() = %v, want %v", len(got), len(records))
+		}
+	})
 }
 
 func Test_Service_Get(t *testing.T) {
@@ -190,67 +220,153 @@ func Test_Service_Get(t *testing.T) {
 	// Sample record UUID.
 	id := uuid.New()
 
-	type args struct {
-		ctx context.Context
-		ID  uuid.UUID
-	}
-	tests := []struct {
+	t.Run("get record with invalid ID", func(t *testing.T) {
 
-		// The name of our test.
-		// This will be used to identify the test in the output.
-		//
-		// Example: "list all records"
-		name string
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Get(gomock.Any(), gomock.Any()).Times(0)
 
-		// The arguments that we will pass to the function.
-		//
-		// Example: context.Background(), &CreateOptions{Title: "Test model.Record"}
-		args args
+		_, err := s.Get(context.Background(), uuid.Nil)
+		if err == nil || err != ErrInvalidOptions {
+			t.Errorf("service.Get() error = %v, wantErr %v", err, true)
+		}
+	})
 
-		// The expectation that we will set on the mock database layer.
-		expectation *gomock.Call
+	t.Run("get record with valid ID", func(t *testing.T) {
 
-		// The validation function that will be used to validate the output.
-		validation func(*model.Record) error
-
-		// Whether we expect an error or not.
-		wantErr bool
-	}{
-		{
-			name: "get seed record",
-			args: args{
-				ctx: context.Background(),
-				ID:  id,
+		record := model.Record{
+			Base: model.Base{
+				ID: id,
 			},
-			expectation: config.db.EXPECT().Get(gomock.Any(), gomock.Any()).Return(&model.Record{
-				Base: model.Base{
-					ID: id,
-				},
-				Title: "Test Record",
-			}, nil),
-			validation: func(record *model.Record) error {
-				if record.ID != id {
-					return fmt.Errorf("expected retrieved record to equal seed, got = %v", record.ID)
-				}
-				return nil
-			},
-			wantErr: false,
-		},
+			Title: "Test Record",
+		}
+
+		// Set the expectation at the database layer.
+		config.db.EXPECT().Get(gomock.Any(), id).Return(&record, nil).Times(1)
+
+		got, err := s.Get(context.Background(), id)
+		if err != nil {
+			t.Errorf("service.Get() error = %v, wantErr %v", err, false)
+		}
+		if got.ID != id {
+			t.Errorf("service.Get() = %v, want %v", got.ID, id)
+		}
+		if got.Title != record.Title {
+			t.Errorf("service.Get() = %v, want %v", got.Title, record.Title)
+		}
+	})
+}
+
+func Test_Service_Update(t *testing.T) {
+
+	// Setup the test config.
+	config := configure(t)
+
+	// Initialize the service.
+	s := &service{
+		db:     config.db,
+		logger: config.log,
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
 
-			// Set the expectation.
-			tt.expectation.Times(1)
+	// Sample record UUID.
+	id := uuid.New()
 
-			got, err := s.Get(tt.args.ctx, tt.args.ID)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("service.List() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.validation != nil && tt.validation(got) != nil {
-				t.Errorf("service.List() = %v, validation produced = %v", got, tt.validation(got))
-			}
+	t.Run("update record with invalid ID", func(t *testing.T) {
+
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := s.Update(context.Background(), uuid.Nil, &UpdateOptions{
+			Title: "Test Record",
 		})
+		if err == nil || err != ErrInvalidRecordID {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("update record with nil options", func(t *testing.T) {
+
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := s.Update(context.Background(), id, nil)
+		if err == nil || err != ErrInvalidOptions {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("update record with invalid options", func(t *testing.T) {
+
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+		_, err := s.Update(context.Background(), id, &UpdateOptions{
+			Title: "",
+		})
+		if err == nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("update record with valid options", func(t *testing.T) {
+
+		record := model.Record{
+			Base: model.Base{
+				ID: id,
+			},
+			Title: "Test Record",
+		}
+
+		// Set the expectation at the database layer.
+		config.db.EXPECT().Update(gomock.Any(), id, gomock.Any()).Return(&record, nil).Times(1)
+
+		got, err := s.Update(context.Background(), id, &UpdateOptions{
+			Title: "Updated Record",
+		})
+		if err != nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, false)
+		}
+		if got.ID != id {
+			t.Errorf("service.Update() = %v, want %v", got.ID, id)
+		}
+		if got.Title != record.Title {
+			t.Errorf("service.Update() = %v, want %v", got.Title, record.Title)
+		}
+	})
+}
+
+func Test_Service_Delete(t *testing.T) {
+
+	// Setup the test config.
+	config := configure(t)
+
+	// Initialize the service.
+	s := &service{
+		db:     config.db,
+		logger: config.log,
 	}
+
+	// Sample record UUID.
+	id := uuid.New()
+
+	t.Run("delete record with invalid ID", func(t *testing.T) {
+
+		// Make sure the database layer is not expecting a call.
+		config.db.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
+
+		err := s.Delete(context.Background(), uuid.Nil)
+		if err == nil || err != ErrInvalidRecordID {
+			t.Errorf("service.Delete() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("delete record with valid ID", func(t *testing.T) {
+
+		// Set the expectation at the database layer.
+		config.db.EXPECT().Delete(gomock.Any(), id).Return(nil).Times(1)
+
+		err := s.Delete(context.Background(), id)
+		if err != nil {
+			t.Errorf("service.Delete() error = %v, wantErr %v", err, false)
+		}
+	})
 }
