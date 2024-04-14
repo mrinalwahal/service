@@ -29,6 +29,11 @@ type Config struct {
 
 // Initializes and gets the service with the supplied database connection.
 func NewService(config *Config) Service {
+
+	if config == nil {
+		panic("service: nil config")
+	}
+
 	svc := service{
 		db:     config.DB,
 		logger: config.Logger,

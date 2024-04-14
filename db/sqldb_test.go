@@ -51,14 +51,43 @@ func configure(t *testing.T) *testsqldbconfig {
 	}
 }
 
+func Test_NewSQLDB(t *testing.T) {
+
+	t.Run("create db with nil config", func(t *testing.T) {
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("expected NewSQLDB to panic, but it didn't")
+			}
+		}()
+
+		NewSQLDB(nil)
+	})
+
+	t.Run("create db with valid config", func(t *testing.T) {
+
+		// Setup the test environment.
+		environment := configure(t)
+
+		// Initialize the database.
+		db := NewSQLDB(&SQLDBConfig{
+			DB: environment.conn,
+		})
+
+		if db == nil {
+			t.Fatalf("expected db to be initialized, got nil")
+		}
+	})
+}
+
 func Test_Database_Create(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	// Initialize the database.
 	db := &sqldb{
-		conn: environment.conn,
+		conn: config.conn,
 	}
 
 	t.Run("create record with nil options", func(t *testing.T) {
@@ -69,50 +98,45 @@ func Test_Database_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("create record with options w/o JWT claims", func(t *testing.T) {
+	t.Run("create record with invalid options", func(t *testing.T) {
 
-		options := &CreateOptions{
-			Title: "Test Record",
+		options := CreateOptions{
+			Title:  "",
+			UserID: uuid.Nil,
 		}
 
-		_, err := db.Create(context.Background(), options)
+		_, err := db.Create(context.Background(), &options)
 		if err == nil {
 			t.Errorf("service.Create() error = %v, wantErr %v", err, true)
 		}
 	})
 
-	t.Run("create record with options w/ JWT claims", func(t *testing.T) {
+	t.Run("create record with valid options", func(t *testing.T) {
 
-		options := &CreateOptions{
+		options := CreateOptions{
 			Title:  "Test Record",
 			UserID: uuid.New(),
 		}
 
-		ctx := context.Background()
-		record, err := db.Create(ctx, options)
+		record, err := db.Create(context.Background(), &options)
 		if err != nil {
-			t.Fatalf("failed to create a record: %v", err)
+			t.Fatalf("failed to create record: %v", err)
 		}
 
-		// Check if the response contains a valid UUID and correct title.
-		if record.ID == uuid.Nil {
-			t.Fatalf("expected record ID to be generated automatically, got empty UUID")
-		}
-
-		if record.Title != "Test Record" {
-			t.Fatalf("expected record title to be 'Test Record', got '%s'", options.Title)
+		if record.Title != options.Title {
+			t.Fatalf("expected record title to be '%s', got '%s'", options.Title, record.Title)
 		}
 	})
 }
 
 func Test_Database_List(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	// Initialize the database.
 	db := &sqldb{
-		conn: environment.conn,
+		conn: config.conn,
 	}
 
 	ctx := context.Background()
@@ -128,7 +152,34 @@ func Test_Database_List(t *testing.T) {
 		}
 	}
 
-	t.Run("list all records", func(t *testing.T) {
+	t.Run("list records with nil options", func(t *testing.T) {
+
+		records, err := db.List(ctx, nil)
+		if err != nil {
+			t.Fatalf("failed to list records: %v", err)
+		}
+
+		if len(records) < 1 {
+			t.Fatalf("expected at least 1 record, got %d", len(records))
+		}
+	})
+
+	t.Run("list records with invalid options", func(t *testing.T) {
+
+		records, err := db.List(ctx, &ListOptions{
+			Skip:  -1,
+			Limit: -1,
+		})
+		if err == nil {
+			t.Errorf("service.List() error = %v, wantErr %v", err, true)
+		}
+
+		if len(records) != 0 {
+			t.Errorf("expected 0 records, got %d", len(records))
+		}
+	})
+
+	t.Run("list records with valid options", func(t *testing.T) {
 
 		records, err := db.List(ctx, &ListOptions{})
 		if err != nil {
@@ -232,12 +283,12 @@ func Test_Database_List(t *testing.T) {
 
 func Test_Database_Get(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	// Initialize the database.
 	db := &sqldb{
-		conn: environment.conn,
+		conn: config.conn,
 	}
 
 	// Seed the database with sample records.
@@ -253,7 +304,15 @@ func Test_Database_Get(t *testing.T) {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	t.Run("get seed record", func(t *testing.T) {
+	t.Run("get record with nil ID", func(t *testing.T) {
+
+		_, err := db.Get(ctx, uuid.Nil)
+		if err == nil {
+			t.Errorf("service.Get() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("get record with valid ID", func(t *testing.T) {
 
 		record, err := db.Get(ctx, seed.ID)
 		if err != nil {
@@ -264,16 +323,29 @@ func Test_Database_Get(t *testing.T) {
 			t.Fatalf("expected retrieved record to equal seed, got = %v", record)
 		}
 	})
+
+	t.Run("get record as a different user than the one who created it", func(t *testing.T) {
+
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
+		})
+
+		_, err := db.Get(ctx, seed.ID)
+		if err == nil {
+			t.Errorf("service.Get() error = %v, wantErr %v", err, true)
+		}
+	})
 }
 
 func Test_Database_Update(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	// Initialize the database.
 	db := &sqldb{
-		conn: environment.conn,
+		conn: config.conn,
 	}
 
 	// Seed the database with sample records.
@@ -289,55 +361,118 @@ func Test_Database_Update(t *testing.T) {
 		t.Fatalf("failed to seed the database: %v", err)
 	}
 
-	t.Run("update seed record", func(t *testing.T) {
+	t.Run("update record with nil ID", func(t *testing.T) {
 
-		options := UpdateOptions{
-			Title: "Updated Title",
+		_, err := db.Update(ctx, uuid.Nil, &UpdateOptions{
+			Title: "Updated Record",
+		})
+		if err == nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
 		}
-		updated, err := db.Update(ctx, seed.ID, &options)
+	})
+
+	t.Run("update record with nil options", func(t *testing.T) {
+
+		_, err := db.Update(ctx, seed.ID, nil)
+		if err == nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("update record with invalid options", func(t *testing.T) {
+
+		_, err := db.Update(ctx, seed.ID, &UpdateOptions{
+			Title: "",
+		})
+		if err == nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
+		}
+	})
+
+	t.Run("update record with valid options", func(t *testing.T) {
+
+		updatedTitle := "Updated Record"
+		record, err := db.Update(ctx, seed.ID, &UpdateOptions{
+			Title: updatedTitle,
+		})
 		if err != nil {
 			t.Fatalf("failed to update record: %v", err)
 		}
 
-		if updated.Title != options.Title {
-			t.Fatalf("expected updated record title to be '%s', got '%s'", options.Title, updated.Title)
+		if record.Title != updatedTitle {
+			t.Fatalf("expected record title to be 'Updated Record', got '%s'", record.Title)
+		}
+	})
+
+	t.Run("update record as a different user than the one who created it", func(t *testing.T) {
+
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
+		})
+
+		_, err := db.Update(ctx, seed.ID, &UpdateOptions{
+			Title: "Updated Record",
+		})
+		if err == nil {
+			t.Errorf("service.Update() error = %v, wantErr %v", err, true)
 		}
 	})
 }
 
 func Test_Database_Delete(t *testing.T) {
 
-	// Setup the test environment.
-	environment := configure(t)
+	// Setup the test config.
+	config := configure(t)
 
 	// Initialize the database.
 	db := &sqldb{
-		conn: environment.conn,
-	}
-
-	// Seed the database with sample records.
-	options := CreateOptions{
-		Title:  "Test Record",
-		UserID: uuid.New(),
+		conn: config.conn,
 	}
 
 	ctx := context.Background()
 
-	seed, err := db.Create(ctx, &options)
-	if err != nil {
-		t.Fatalf("failed to seed the database: %v", err)
-	}
+	t.Run("delete record with nil ID", func(t *testing.T) {
 
-	t.Run("delete seed record", func(t *testing.T) {
+		err := db.Delete(ctx, uuid.Nil)
+		if err == nil {
+			t.Errorf("service.Delete() error = %v, wantErr %v", err, true)
+		}
+	})
 
-		err := db.Delete(context.Background(), seed.ID)
+	t.Run("delete record with valid ID", func(t *testing.T) {
+
+		seed, err := db.Create(ctx, &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		})
 		if err != nil {
-			t.Fatalf("failed to delete record: %v", err)
+			t.Fatalf("failed to seed the database: %v", err)
 		}
 
-		_, err = db.Get(context.Background(), seed.ID)
+		if err := db.Delete(ctx, seed.ID); err != nil {
+			t.Fatalf("failed to delete record: %v", err)
+		}
+	})
+
+	t.Run("delete record as a different user than the one who created it", func(t *testing.T) {
+
+		seed, err := db.Create(ctx, &CreateOptions{
+			Title:  "Test Record",
+			UserID: uuid.New(),
+		})
+		if err != nil {
+			t.Fatalf("failed to seed the database: %v", err)
+		}
+
+		// Add JWT claims to the context.
+		ctx := context.WithValue(context.Background(), middleware.XJWTClaims, middleware.JWTClaims{
+			XUserID: uuid.New(),
+		})
+
+		err = db.Delete(ctx, seed.ID)
 		if err == nil {
-			t.Fatalf("expected record to be deleted, got nil")
+			t.Errorf("service.Delete() error = %v, wantErr %v", err, true)
 		}
 	})
 }
