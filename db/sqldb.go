@@ -19,6 +19,10 @@ type SQLDBConfig struct {
 }
 
 func NewSQLDB(config *SQLDBConfig) DB {
+	if config == nil {
+		panic("db: nil config")
+	}
+
 	db := sqldb{
 		conn: config.DB,
 	}
@@ -112,7 +116,7 @@ func (db *sqldb) List(ctx context.Context, options *ListOptions) ([]*model.Recor
 func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
 	if ID == uuid.Nil {
-		return nil, ErrInvalidOptions
+		return nil, ErrInvalidRecordID
 	}
 
 	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
@@ -137,7 +141,10 @@ func (db *sqldb) Get(ctx context.Context, ID uuid.UUID) (*model.Record, error) {
 // Update operation updates a record in the database.
 func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOptions) (*model.Record, error) {
 	txn := db.conn.WithContext(ctx)
-	if id == uuid.Nil || options == nil {
+	if id == uuid.Nil {
+		return nil, ErrInvalidRecordID
+	}
+	if options == nil {
 		return nil, ErrInvalidOptions
 	}
 	if err := options.validate(); err != nil {
@@ -166,7 +173,7 @@ func (db *sqldb) Update(ctx context.Context, id uuid.UUID, options *UpdateOption
 func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID) error {
 	txn := db.conn.WithContext(ctx)
 	if ID == uuid.Nil {
-		return ErrInvalidOptions
+		return ErrInvalidRecordID
 	}
 
 	// If the request context contains JWT claims, apply Row Level Security (RLS) checks.
@@ -182,5 +189,11 @@ func (db *sqldb) Delete(ctx context.Context, ID uuid.UUID) error {
 	var payload model.Record
 	payload.ID = ID
 	result := txn.Delete(&payload)
-	return result.Error
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNoRowsAffected
+	}
+	return nil
 }

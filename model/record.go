@@ -7,7 +7,7 @@ type Record struct {
 
 	// Title of the record.
 	//
-	// Example: "Test model.Record"
+	// Example: "Test Record"
 	//
 	// It is a required field.
 	Title string `json:"title" gorm:"not null;check:(length(title)>0)"`

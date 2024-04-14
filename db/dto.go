@@ -55,5 +55,8 @@ type UpdateOptions struct {
 }
 
 func (o *UpdateOptions) validate() error {
+	if o.Title == "" {
+		return ErrInvalidTitle
+	}
 	return nil
 }
